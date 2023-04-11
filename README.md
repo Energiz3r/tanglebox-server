@@ -23,6 +23,7 @@ Reboot
 ## Installation
 
 `python -m pip install --upgrade pip`
+
 `pip install -r requirements.txt`
 
 ## Usage
@@ -32,7 +33,9 @@ Reboot
 or
 
 `python main.py --model-path /path/to/model/modelName`
+
 eg
+
 `python main.py --model-path E:/models/vicuna-13b`
 
 (OPTIONAL)
