@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script crossorigin src="static/react.production.min.js"></script>
+    <script crossorigin src="static/react-dom.production.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="./static/favicon.67fc95e7.ico" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAACtElEQVR4AW3BS2tcZQCA4fe7nXNmJg21SWw0VoSotV5CRXe68y+IC8GdCO4E6T9w60ZwoRTcuOlCROhCQWlKQFNBxBa8UVGbydh22k7nzLmf7+IHHVDE51H8DymVXj+2/fKjj7z4wcba9ive+6Lp8qshBM9/CP4lSYZrGxun3jjx4NNvZnp0IktHSC/o2hLbteODG5fPTm79fLbu8kOWBNFgtHZq84Gn3to8fvK1QToaGKlJVYqUEIJAO0nf1igPdV3a67PfPzuYXnn/TnG4K5RORqeff/XucLSqh+kQYxK0lCRopBDgAnhP37b41mLbnqarqNqi2f/p3H3a2a7sbP3D1vqTz60OVlBCEWyLRCO9w9uAty3OWrxyBALBQ1nf2Xe+byTR7Nafu/niLnVbk6YGk6yQpSmpGZImGVqnOO+wXYcJGolgVkwuEmmiYj7ZdX33dr64jW9KjFZIYUhlilGC67cPkG1PGhIqW6GEJq9u7hJpoqK4uddUucvM/aquK5oQsE3JIBuxKOYkSKTXBAmJziiaRZtX00tEksj2zbxYTL/ve4v1gWAdeJgvZviuwVvHIDmCw6NFyrz865LzfU0kWcpn46+6uoSg8IAgILxDSonRAxACKQy965nmB1+wpFiqyuk3Wba6MxiuPS7x4D0+eKQwHElW6Z1Fe8OvN779+Opk/wyEQKRYCsH3eX7tk9M7T2yVuXxWCgF4FJLUDGibjsHx+Ud73336uvfOsaSIRGSiJLp28MuXz+xsq/ksvKAQGJ3QdpajD1Uffn7h3Bki55wPEZEiklEaDSNjTDIe/7b/2MnNSVVmL2kSeWyreO/i1+ffUUpppZR0zlkfESn+IaSUIiJE48M/rmw9vHL56Lr68cLe+Xd9ZKO2bbs+8hGRYEncI9U9UiwRhcgvuSgsEf0NoVKEJ4pUiwQAAAAASUVORK5CYII="
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="data:image/png;base64,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"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="48x48"
+      href="./static/favicon-48x48.b1b4e799.png"
+    />
+    <title>tanglebox.ai</title>
+    <script type="module" crossorigin src="./static/index.2aa631da.js"></script>
+    <link rel="stylesheet" href="./static/index.afc2bf65.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
