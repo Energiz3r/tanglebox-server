@@ -35,9 +35,7 @@ def echo(ws):
         else:
             ws.send("#a-c-k#")
             try:
-                languageModel.runInference(
-                    data, ws, modelSettings.temperature, modelSettings.max_new_tokens
-                )
+                languageModel.runInference(data, ws)
             finally:
                 ws.send("#f-i-n#")
 
