@@ -22,15 +22,10 @@ Reboot
 
 ## Installation
 
-`python -m pip install --upgrade pip`
-
-Then, depending on whether you want to use an Nvidia GPU for inferencing:
-
-`pip install -r requirements-cuda.txt`
-
-or
-
-`pip install -r requirements-cpu.txt`
+- Install `python-3.8.0` and VS2019 as above, if needed
+- Make sure pip is up to date: `python -m pip install --upgrade pip`
+- Depending on whether you want to use an Nvidia GPU for inferencing:
+  `pip install -r requirements-cuda.txt` or `pip install -r requirements-cpu.txt`
 
 The CUDA option allows CPU, but the CPU-only install saves doing a ~2GB download.
 
