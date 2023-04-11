@@ -75,6 +75,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--load-8bit", action="store_true", help="Use 8-bit quantization."
     )
+    parser.add_argument("--vram-gb", type=int, default=13)
     args = parser.parse_args()
     modelSettings = ModelSettings(
         args.temperature, args.max_new_tokens, args.model_name, args.device
@@ -87,6 +88,7 @@ if __name__ == "__main__":
         modelSettings,
         args.load_8bit,
         args.llama,
+        args.vram_gb,
     )
 
     print(f"Starting flask + websockets ({args.port + 1})...")

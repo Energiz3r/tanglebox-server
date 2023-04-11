@@ -24,6 +24,7 @@ class LanguageModel:
         modelSettings,
         load_8bit,
         llama,
+        vram_gb,
     ):
         self.model_name = model_name
         self.num_gpus = num_gpus
@@ -32,7 +33,9 @@ class LanguageModel:
         self.modelSettings = modelSettings
         self.load_8bit = load_8bit
         isLlamaDetected = (
-            "vicuna" in model_name.lower() or "llama" in model_name.lower()
+            "vicuna" in model_name.lower()
+            or "llama" in model_name.lower()
+            # or "alpaca" in model_name.lower()
         )
         self.isLlama = llama or isLlamaDetected
         if isLlamaDetected:
@@ -42,10 +45,11 @@ class LanguageModel:
             print("Configuring for CUDA acceleration")
             num_gpus = int(num_gpus)
             kwargs = {
-                "torch_dtype": torch.float16,
+                "torch_dtype": torch.half,
                 "low_cpu_mem_usage": True,
                 "device_map": "auto",
-                "max_memory": {i: "13GiB" for i in range(num_gpus)},
+                "max_memory": {i: str(vram_gb) + "GiB" for i in range(num_gpus)},
+                # "offload_folder": "./offload",
             }
         elif device == "cpu-gptq":
             print("Configuring for CPU and GPTQ models")
