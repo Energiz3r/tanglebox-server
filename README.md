@@ -1,6 +1,6 @@
 # tanglebox model runner
 
-![logo](https://i.imgur.com/TlnVcbM.png)
+![preview](https://i.imgur.com/MNqyb0U.png)
 
 Tested on windows 10, python-3.8.0
 
