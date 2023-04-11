@@ -73,13 +73,14 @@ if __name__ == "__main__":
     parser.add_argument("--max-new-tokens", type=int, default=512)
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--llama", action="store_true")
     parser.add_argument("--load-8bit", action="store_true",
                         help="Use 8-bit quantization.")
     args = parser.parse_args()
     modelSettings = ModelSettings(
         args.temperature, args.max_new_tokens, args.model_name, args.device)
     languageModel = LanguageModel(args.model_name, args.num_gpus,
-                                  args.device, args.debug, args.temperature, args.max_new_tokens, args.load_8bit)
+                                  args.device, args.debug, args.temperature, args.max_new_tokens, args.load_8bit, args.llama)
 
     print(f"Starting flask + websockets ({args.port + 1})...")
     app.run(host="0.0.0.0", port=args.port)  # Start the server

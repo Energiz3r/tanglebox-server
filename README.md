@@ -24,7 +24,15 @@ Reboot
 
 `python -m pip install --upgrade pip`
 
-`pip install -r requirements.txt`
+Then, depending on whether you want to use an Nvidia GPU for inferencing:
+
+`pip install -r requirements-cuda.txt`
+
+or
+
+`pip install -r requirements-cpu.txt`
+
+The CUDA option allows CPU, but the CPU-only install saves doing a ~2GB download.
 
 ## Usage
 
