@@ -13,6 +13,7 @@ from mps_patch import replace_llama_attn_with_non_inplace_operations
 
 
 class LanguageModel:
+    @torch.no_grad()
     @torch.inference_mode()
     def __init__(
         self,
@@ -20,8 +21,7 @@ class LanguageModel:
         num_gpus,
         device,
         debug,
-        temperature,
-        max_new_tokens,
+        modelSettings,
         load_8bit,
         llama,
     ):
@@ -29,8 +29,7 @@ class LanguageModel:
         self.num_gpus = num_gpus
         self.device = device
         self.debug = debug
-        self.temperature = float(temperature)
-        self.max_new_tokens = int(max_new_tokens)
+        self.modelSettings = modelSettings
         self.load_8bit = load_8bit
         isLlamaDetected = (
             "vicuna" in model_name.lower() or "llama" in model_name.lower()
@@ -40,19 +39,23 @@ class LanguageModel:
             print("LLaMA model detected", self.isLlama)
 
         if device == "cuda":
+            print("Configuring for CUDA acceleration")
             num_gpus = int(num_gpus)
             kwargs = {
                 "torch_dtype": torch.float16,
                 "low_cpu_mem_usage": True,
                 "device_map": "auto",
-                # "max_memory": {i: "13GiB" for i in range(num_gpus)},
+                "max_memory": {i: "13GiB" for i in range(num_gpus)},
             }
         elif device == "cpu-gptq":
+            print("Configuring for CPU and GPTQ models")
             kwargs = {
+                "torch_dtype": torch.float32,
                 "low_cpu_mem_usage": True,
-                "max_memory": {0: "64GiB"},
+                # "max_memory": {0: "64GiB"},
             }
         elif device == "mps":
+            print("Configuring for Apple silicon")
             kwargs = {"torch_dtype": torch.float16}
             # Avoid bugs in mps backend by not using in-place operations.
             replace_llama_attn_with_non_inplace_operations()
@@ -61,7 +64,7 @@ class LanguageModel:
             kwargs = {
                 "torch_dtype": torch.float32,
                 "low_cpu_mem_usage": True,
-                "max_memory": {0: "64GiB"},
+                # "max_memory": {0: "64GiB"},
             }
 
         if self.debug:
@@ -96,7 +99,7 @@ class LanguageModel:
 
         print("Language model initialised.")
 
-    def runInference(self, inputString, websocket, temperature, max_new_tokens):
+    def runInference(self, inputString, websocket):
         try:
             inp = inputString
         except EOFError:
@@ -122,18 +125,19 @@ class LanguageModel:
         self.conversation.append_message(self.conversation.roles[1], None)
         prompt = self.conversation.get_prompt()
 
-        print(
-            "inferencing with temp",
-            temperature if temperature else self.temperature,
-            "and max tokens",
-            max_new_tokens if max_new_tokens else self.max_new_tokens,
-        )
+        if self.debug:
+            print(
+                "Inferencing with temp",
+                self.modelSettings.temperature,
+                "and max tokens",
+                self.modelSettings.max_new_tokens,
+            )
 
         params = {
             "model": self.model_name,
             "prompt": prompt,
-            "temperature": temperature if temperature else self.temperature,
-            "max_new_tokens": max_new_tokens if max_new_tokens else self.max_new_tokens,
+            "temperature": self.modelSettings.temperature,
+            "max_new_tokens": self.modelSettings.max_new_tokens,
             "stop": self.conversation.sep
             if self.conversation.sep_style == SeparatorStyle.SINGLE
             else self.conversation.sep2,
