@@ -50,3 +50,5 @@ eg
 --debug
 --load-8bit
 ```
+
+Then open your browser and navigate to `localhost:8080` (or whatever port you specified)

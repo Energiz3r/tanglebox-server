@@ -41,7 +41,9 @@ class LanguageModel:
                 "low_cpu_mem_usage": True,
                 "max_memory": {0: "64GiB"},
             }
-
+        
+        if self.debug:
+            print('Setting up tokenizer...')
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         print(f"Loading model '{model_name}' ({device})...")
