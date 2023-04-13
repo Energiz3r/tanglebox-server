@@ -5,6 +5,7 @@ from transformers import (
     AutoModelForCausalLM,
     LlamaTokenizer,
     LlamaForCausalLM,
+    AutoModel,
 )
 from convos import convoTemplates, SeparatorStyle
 from compression import compress_module
@@ -38,10 +39,20 @@ class LanguageModel:
             # or "alpaca" in model_name.lower()
         )
         self.isLlama = llama or isLlamaDetected
-        if isLlamaDetected:
+        if self.isLlama:
             print("LLaMA model detected", self.isLlama)
 
-        if device == "cuda":
+        if "chatglm" in model_name:
+            print("Configuring for chatglm model type")
+            num_gpus = int(num_gpus)
+            kwargs = {
+                "torch_dtype": torch.half,
+                "low_cpu_mem_usage": True,
+                "device_map": "auto",
+                "max_memory": {i: str(vram_gb) + "GiB" for i in range(num_gpus)},
+                # "offload_folder": "./offload",
+            }
+        elif device == "cuda":
             print("Configuring for CUDA acceleration")
             num_gpus = int(num_gpus)
             kwargs = {
@@ -76,6 +87,10 @@ class LanguageModel:
         if self.isLlama:
             print("Using LlamaTokenizer")
             self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
+        elif "chatglm" in model_name:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_name, trust_remote_code=True
+            )
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
@@ -85,6 +100,10 @@ class LanguageModel:
         print(f"Loading model '{model_name}' ({device})...")
         if self.isLlama:
             self.model = LlamaForCausalLM.from_pretrained(model_name, **kwargs)
+        elif "chatglm" in model_name:
+            self.model = AutoModel.from_pretrained(
+                model_name, trust_remote_code=True, **kwargs
+            )
         else:
             self.model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs)
 

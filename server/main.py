@@ -91,5 +91,4 @@ if __name__ == "__main__":
         args.vram_gb,
     )
 
-    print(f"Starting flask + websockets ({args.port + 1})...")
     app.run(host="0.0.0.0", port=args.port)  # Start the server
