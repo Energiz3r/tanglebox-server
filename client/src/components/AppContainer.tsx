@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { styles } from "./AppContainer.css";
 import { palette } from "@energiz3r/component-library/src/theme";
 
@@ -11,7 +11,7 @@ import { ContentSection } from "@energiz3r/component-library/src/components/Cont
 import { ContentHeader } from "@energiz3r/component-library/src/components/ContentHeader/ContentHeader";
 import { Conversation } from "./Conversation/Conversation";
 import { useConversation } from "../hooks/useConversation";
-
+import { DarkThemeToggle } from "@energiz3r/component-library/src/components/DarkThemeToggle/DarkThemeToggle";
 import { ReactComponent as SvgLink } from "@energiz3r/component-library/src/Icons/regular/link.svg";
 import { ReactComponent as SvgCoffee } from "@energiz3r/component-library/src/Icons/regular/coffee.svg";
 import logoUrl from "../../assets/logo.png";
@@ -20,8 +20,13 @@ import githubLogo from "../../assets/github-mark.png";
 
 export const AppContainer = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
-
-  const shouldStreamResponses = true;
+  const shouldStreamResponsesDefault =
+    (localStorage.getItem("shouldStreamResponses") ?? "true") === "true"
+      ? true
+      : false;
+  const [shouldStreamResponses, setShouldStreamResponses] = useState(
+    shouldStreamResponsesDefault,
+  );
 
   const {
     socket,
@@ -34,6 +39,7 @@ export const AppContainer = () => {
     conversation,
     changeMaxTokens,
     changeTemperature,
+    changeStreaming,
     sendMessage,
     discardConversation,
   } = useConversation({ shouldStreamResponses });
@@ -41,6 +47,20 @@ export const AppContainer = () => {
   const handleMenuClick = () => {
     setIsMenuVisible(!isMenuVisible);
   };
+
+  const handleToggleStreaming = () => {
+    const shouldStream = !shouldStreamResponses;
+    localStorage.setItem(
+      "shouldStreamResponses",
+      shouldStream ? "true" : "false",
+    );
+    changeStreaming(shouldStream);
+    setShouldStreamResponses(shouldStream);
+  };
+
+  useEffect(() => {
+    if (!isConnecting) changeStreaming(shouldStreamResponses);
+  }, [isConnecting]);
 
   return (
     <>
@@ -133,6 +153,23 @@ export const AppContainer = () => {
           ) : null}
 
           <MenuItem>
+            <p>Stream responses {shouldStreamResponses}</p>
+            <div
+              style={{
+                backgroundColor: palette.theme.lightShade,
+                borderRadius: "30px",
+                width: "93px",
+                paddingBottom: "12px",
+              }}
+            >
+              <DarkThemeToggle
+                defaultMode={shouldStreamResponses ? "dark" : "light"}
+                onClick={handleToggleStreaming}
+              />
+            </div>
+          </MenuItem>
+
+          <MenuItem>
             <p>Temperature</p>
             <FloatInput
               onChange={changeTemperature}
@@ -170,7 +207,7 @@ export const AppContainer = () => {
       </ContentSection>
 
       <ContentSection isContentCentered>
-        <p>&copy; Tanglebox 2023</p>
+        <p>Tangles 2023</p>
         <p>
           <a
             href="https://tanglebox.ai"

@@ -1,15 +1,33 @@
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { conversationMessage } from "../components/Conversation/Conversation";
 
-const processLinebreaks = (msg: string) => {
-  const result = msg.replace(/(?<!\n)\n(?!\n)/, "<br />");
-  return result;
+const processLinebreaks = (msg: string, isStreaming: boolean) => {
+  const replacePiece = (piece: string) => {
+    return piece.replace(/(?<!\n)\n(?!\n)/, "<br />");
+  };
+  if (isStreaming) return replacePiece(msg);
+  const msgParts = msg.split(/(?= )/g);
+  let msgProcessed = "";
+  let processingCode = false;
+  for (let i = 0; i < msgParts.length; i++) {
+    const piece = msgParts[i];
+    if (piece.includes("```")) processingCode = !processingCode;
+    if (processingCode) msgProcessed += piece;
+    else msgProcessed += replacePiece(piece);
+  }
+  //console.log(msgParts, msgProcessed);
+  return msgProcessed;
 };
 
 // @ts-ignore
 const isDev = import.meta.env.DEV;
-const host = isDev ? "ws://localhost:8080/echo" :"ws://" + location.host + "/echo";
-if (isDev) console.log('Dev mode - using localhost:8080 for websocket endpoint')
+const protocol = location.protocol === "https:" ? "wss" : "ws";
+//const protocol = 'wss'
+const host = isDev
+  ? `${protocol}://localhost:8080`
+  : `${protocol}://${location.host}`;
+if (isDev) console.log(`Dev mode - using ${host} for websocket endpoint`);
 
 export const useConversation = ({
   shouldStreamResponses,
@@ -29,8 +47,8 @@ export const useConversation = ({
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(512);
 
-  const handleReceiveData = (content: string) => {
-    let thisMessage = content || "";
+  const socketHandler = (event: any) => {
+    let thisMessage = event.data || "";
     if (thisMessage.includes("#-set-#")) return;
     if (thisMessage.includes("#-delete-#")) {
       setConversation([]);
@@ -60,7 +78,12 @@ export const useConversation = ({
     const isServerFinished = thisMessage.includes("#f-i-n#");
 
     if (isCodeBlockBoundary) {
-      setIsProcessingBackticks(!isProcessingBackticks);
+      const numOfBacktickSets = (thisMessage.match(/```/g) || []).length;
+      if (numOfBacktickSets % 2 === 1) {
+        flushSync(() => {
+          setIsProcessingBackticks(!isProcessingBackticks);
+        });
+      }
     }
 
     if (isAcknowdledgement) {
@@ -72,21 +95,26 @@ export const useConversation = ({
         message: "",
         timestampReceived: new Date().valueOf(),
       });
-      setConversation(newConvo);
+      flushSync(() => {
+        setConversation(newConvo);
+      });
       return;
     }
 
     if (isServerFinished) {
       setIsAwaitingResponse(false);
       if (shouldStreamResponses) return;
+      const thisMsg = messageBuffer;
       const newConvo = conversation;
       newConvo.push({
         role: "AI",
-        message: messageBuffer,
+        message: thisMsg,
         timestampReceived: new Date().valueOf(),
       });
-      setConversation(newConvo);
-      setMessageBuffer("");
+      flushSync(() => {
+        setConversation(newConvo);
+        setMessageBuffer("");
+      });
       return;
     }
 
@@ -95,11 +123,13 @@ export const useConversation = ({
       !isProcessingBackticks &&
       thisMessage.includes("\n")
     ) {
-      thisMessage = processLinebreaks(thisMessage);
+      thisMessage = processLinebreaks(thisMessage, shouldStreamResponses);
     }
 
     if (!shouldStreamResponses) {
-      setMessageBuffer(messageBuffer + thisMessage);
+      flushSync(() => {
+        setMessageBuffer(messageBuffer + thisMessage);
+      });
       return;
     }
 
@@ -113,11 +143,9 @@ export const useConversation = ({
       message: lastAiMessage.message + thisMessage,
       timestampReceived: new Date().valueOf(),
     });
-    setConversation(newConvo);
-  };
-
-  const socketHandler = (event: any) => {
-    handleReceiveData(event.data);
+    flushSync(() => {
+      setConversation(newConvo);
+    });
   };
 
   const changeMaxTokens = (value: number) => {
@@ -130,6 +158,11 @@ export const useConversation = ({
     if (socket) {
       socket.send(`#-set-temp-#${value}`);
       setTemperature(value);
+    }
+  };
+  const changeStreaming = (value: boolean) => {
+    if (socket) {
+      socket.send(`#-set-streaming-#${value ? "true" : "false"}`);
     }
   };
 
@@ -162,7 +195,9 @@ export const useConversation = ({
   }, []);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      return;
+    }
     socket.addEventListener("message", socketHandler);
     socket.addEventListener("open", socketConnectHandler);
     socket.addEventListener("close", socketDisconnectHandler);
@@ -171,7 +206,13 @@ export const useConversation = ({
       socket.removeEventListener("open", socketConnectHandler);
       socket.removeEventListener("close", socketDisconnectHandler);
     };
-  }, [socket, conversation, messageBuffer]);
+  }, [
+    socket,
+    conversation,
+    messageBuffer,
+    shouldStreamResponses,
+    isProcessingBackticks,
+  ]);
 
   const sendMessage = (inputText: string) => {
     const newConvo = conversation;
@@ -203,6 +244,7 @@ export const useConversation = ({
     conversation,
     changeMaxTokens,
     changeTemperature,
+    changeStreaming,
     sendMessage,
     discardConversation,
   };
