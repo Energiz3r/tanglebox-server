@@ -9,6 +9,7 @@ from transformers import (
 )
 from compression import compress_module
 from mps_patch import replace_llama_attn_with_non_inplace_operations
+from pyllamacpp.model import Model
 
 
 class LanguageModel:
@@ -21,7 +22,6 @@ class LanguageModel:
         device,
         debug,
         load_8bit,
-        llama,
         vram_gb,
     ):
         self.model_name = model_name
@@ -29,14 +29,25 @@ class LanguageModel:
         self.device = device
         self.debug = debug
         self.load_8bit = load_8bit
-        isLlamaDetected = (
+
+        isGgmlDetected = (
+            device == "cpu-ggml"
+            or "ggml" in model_name.lower()
+            or "q4_0" in model_name.lower()
+            or "q4_1" in model_name.lower()
+        )
+        isLlamaDetected = not isGgmlDetected and (
             "vicuna" in model_name.lower()
             or "llama" in model_name.lower()
             # or "alpaca" in model_name.lower()
         )
-        self.isLlama = llama or isLlamaDetected
-        if self.isLlama:
-            print("LLaMA model detected", self.isLlama)
+
+        if isGgmlDetected:
+            print("Configuring for ggml")
+            self.tokenizer = None
+            self.model = Model(ggml_model=model_name, n_ctx=2048, log_level=0)
+            print("Language model initialised.")
+            return
 
         if "chatglm" in model_name:
             print("Configuring for chatglm model type")
@@ -46,7 +57,6 @@ class LanguageModel:
                 "low_cpu_mem_usage": True,
                 "device_map": "auto",
                 "max_memory": {i: str(vram_gb) + "GiB" for i in range(num_gpus)},
-                # "offload_folder": "./offload",
             }
         elif device == "cuda":
             print("Configuring for CUDA acceleration")
@@ -58,13 +68,6 @@ class LanguageModel:
                 "max_memory": {i: str(vram_gb) + "GiB" for i in range(num_gpus)},
                 # "offload_folder": "./offload",
             }
-        elif device == "cpu-gptq":
-            print("Configuring for CPU and GPTQ models")
-            kwargs = {
-                "torch_dtype": torch.float32,
-                "low_cpu_mem_usage": True,
-                # "max_memory": {0: "64GiB"},
-            }
         elif device == "mps":
             print("Configuring for Apple silicon")
             kwargs = {"torch_dtype": torch.float16}
@@ -75,12 +78,11 @@ class LanguageModel:
             kwargs = {
                 "torch_dtype": torch.float32,
                 "low_cpu_mem_usage": True,
-                # "max_memory": {0: "64GiB"},
             }
 
         if self.debug:
             print("Setting up tokenizer...")
-        if self.isLlama:
+        if isLlamaDetected:
             print("Using LlamaTokenizer")
             self.tokenizer = LlamaTokenizer.from_pretrained(model_name)
         elif "chatglm" in model_name:
@@ -94,7 +96,7 @@ class LanguageModel:
             print("Tokenizer:", self.tokenizer)
 
         print(f"Loading model '{model_name}' ({device})...")
-        if self.isLlama:
+        if isLlamaDetected:
             self.model = LlamaForCausalLM.from_pretrained(model_name, **kwargs)
         elif "chatglm" in model_name:
             self.model = AutoModel.from_pretrained(

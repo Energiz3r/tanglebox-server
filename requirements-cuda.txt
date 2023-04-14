@@ -1,8 +1,10 @@
-flask
-flask_sock
-transformers
-sentencepiece
-accelerate
+flask==2.2.3
+flask_sock==0.6.0
+git+https://github.com/huggingface/transformers@v4.28.0
+sentencepiece==0.1.97
+accelerate==0.18.0
+cryptography==40.0.1
 protobuf==3.20
 --extra-index-url https://download.pytorch.org/whl/cu118
-torch
+torch==2.0.0+cu118
+pyllamacpp==1.0.6

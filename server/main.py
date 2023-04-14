@@ -21,7 +21,12 @@ def websocketHandler(ws):
     modelSettings = ModelSettings(
         args.temperature, args.max_new_tokens, args.model_name, args.device, True
     )
-    conversation = convoTemplates["v1"].copy()
+
+    if args.eos:
+        print("Using alternate conversation template")
+        conversation = convoTemplates["v11"].copy()
+    else:
+        conversation = convoTemplates["v1"].copy()
     while True:
         data = ws.receive()
         if "#-set-temp-#" in data:
@@ -94,7 +99,10 @@ if __name__ == "__main__":
     parser.add_argument("--model-name", type=str, default="facebook/opt-350m")
     parser.add_argument("--num-gpus", type=str, default="1")
     parser.add_argument(
-        "--device", type=str, choices=["cuda", "cpu", "cpu-gptq", "mps"], default="cuda"
+        "--device",
+        type=str,
+        choices=["cuda", "cpu", "cpu-gptq", "mps", "cpu-ggml"],
+        default="cuda",
     )
     parser.add_argument("--conv-template", type=str, default="v1")
     parser.add_argument("--temperature", type=float, default=0.7)
@@ -102,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--ssl", action="store_true")
-    parser.add_argument("--llama", action="store_true")
+    parser.add_argument("--eos", action="store_true")
     parser.add_argument(
         "--load-8bit", action="store_true", help="Use 8-bit quantization."
     )
@@ -115,7 +123,6 @@ if __name__ == "__main__":
         args.device,
         args.debug,
         args.load_8bit,
-        args.llama,
         args.vram_gb,
     )
 
