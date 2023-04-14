@@ -191,6 +191,10 @@ export const AppContainer = () => {
               enabled={Boolean(socket)}
             />
           </MenuItem>
+
+          <MenuItem>
+            <p>More settings coming soon</p>
+          </MenuItem>
         </Menu>
       ) : null}
 
