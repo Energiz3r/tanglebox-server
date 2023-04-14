@@ -1,6 +1,15 @@
-# tanglebox model runner
+# Tanglebox Model Runner
 
 ![preview](https://i.imgur.com/MNqyb0U.png)
+
+# Features
+
+- Markdown support
+- Reponsive UI
+- Streaming / realtime output (toggleable)
+- Backends using pytorch for CUDA/mps/CPU, and llama.cpp for CPU
+
+See [development](#development) for future features or way to contribute
 
 Tested on windows 10, python-3.8.0
 
@@ -29,6 +38,8 @@ Reboot
 
 The CUDA option allows CPU, but the CPU-only install saves doing a ~2GB download.
 
+[troubleshooting](#troubleshooting)
+
 ## Usage
 
 Edit and run `run_server.bat`
@@ -44,6 +55,25 @@ eg
 For ggml models, the path should be to the **file**, eg `python main.py --model-path E:\models\ggml-vicuna-7b-1.1\ggml-vicuna-7b-1.1-q4_0.bin`
 
 For everything else, the path should be to the **folder** containing the model.
+
+## Parameters
+
+Using `--device cpu-ggml` will cause tanglebox to use pyllamacpp backend for inferencing. This is preferred / faster when using CPU.
+
+```
+--temperature <float> default=0.7
+--max-new-tokens <integer> default=512
+--device "cuda" | "cpu" | "cpu-ggml" | "mps" default=cuda
+--port <integer> default=8080
+--conv-template <string> default=v1 see convos.py for templating and instructions
+--num-gpus <integer> default=1
+--debug
+--ssl enable SSL mode
+--load-8bit - haven't been able to get this working but have copied LMsys' code verbatim so beats me why
+--eos - uses </s> instead of ### for conversation separators
+```
+
+Then open your browser and navigate to `localhost:8080` (or whatever port you specified)
 
 ## Development
 
@@ -75,25 +105,6 @@ Source - Server
 ```
 
 This should probably become a separate route for control messages, but the need has yet to arise for me and this prevents me having to put websocket instances onto a global object (or somesuch) to maintain context of the client session - KISS
-
-## Parameters
-
-Using `--device cpu-ggml` will cause tanglebox to use pyllamacpp backend for inferencing. This is preferred / faster when using CPU.
-
-```
---temperature <float> default=0.7
---max-new-tokens <integer> default=512
---device "cuda" | "cpu" | "cpu-ggml" | "mps" default=cuda
---port <integer> default=8080
---conv-template <string> default=v1 see convos.py for templating and instructions
---num-gpus <integer> default=1
---debug
---ssl enable SSL mode
---load-8bit - haven't been able to get this working but have copied LMsys' code verbatim so beats me why
---eos - uses </s> instead of ### for conversation separators
-```
-
-Then open your browser and navigate to `localhost:8080` (or whatever port you specified)
 
 ## Troubleshooting
 
