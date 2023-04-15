@@ -12,6 +12,7 @@ def runInference(
     model,
     device,
     debug,
+    user,
 ):
     try:
         inp = inputString
@@ -21,7 +22,8 @@ def runInference(
         print("No input received...")
         return
 
-    print(f"{conversation.roles[0]}: {inputString}")
+    # print(f"{conversation.roles[0]}: {inputString}")
+    print("From ", user + ":", inputString)
 
     if debug:
         print(f'Received input "{inp}"')
@@ -50,7 +52,7 @@ def runInference(
         else conversation.sep2,
     }
 
-    print(f"{conversation.roles[1]}: ", end="", flush=True)
+    # print(f"{conversation.roles[1]}: ", end="", flush=True)
 
     if device != "cpu-ggml":
         pre = 0
@@ -65,21 +67,21 @@ def runInference(
             modelOutput = modelOutput.split(" ")
             now = len(modelOutput)
             if now - 1 > pre:
-                print(" ".join(modelOutput[pre : now - 1]), end=" ", flush=True)
+                # print(" ".join(modelOutput[pre : now - 1]), end=" ", flush=True)
                 currentOutput = " ".join(modelOutput[pre : now - 1]) + " "
                 if modelSettings.shouldStream:
                     websocket.send(currentOutput)
                 pre = now - 1
         finalOutput = " ".join(modelOutput[pre:])
-        print(finalOutput, flush=True)
+        # print(finalOutput, flush=True)
         if modelSettings.shouldStream:
             websocket.send(finalOutput)
         conversation.messages[-1][-1] = " ".join(modelOutput)
 
-        print(conversation.messages[-1][-1])
+        print("To ", user + ":", conversation.messages[-1][-1])
 
         if not modelSettings.shouldStream:
-            print("MESSAGE NOT STREAMED")
+            # print("MESSAGE NOT STREAMED")
             websocket.send(conversation.messages[-1][-1])
     else:
         finalOutputDict = {"finalOutput": ""}

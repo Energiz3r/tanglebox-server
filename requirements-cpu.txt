@@ -5,5 +5,5 @@ sentencepiece==0.1.97
 accelerate==0.18.0
 cryptography==40.0.1
 protobuf==3.20
-torch2.0.0
+torch==2.0.0
 pyllamacpp==1.0.6

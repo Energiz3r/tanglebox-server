@@ -30,6 +30,8 @@ def generateTokenStream(
     max_src_len = context_len - max_new_tokens - 8
     input_ids = input_ids[-max_src_len:]
 
+    # print("input_ids", input_ids)
+
     for i in range(max_new_tokens):
         if i == 0:
             out = model(

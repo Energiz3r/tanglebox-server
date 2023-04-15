@@ -1,8 +1,8 @@
 import argparse
 from languageModel import LanguageModel
 from runInference import runInference
-import uuid
 from convos import convoTemplates
+import logging
 
 from flask import Flask, render_template
 from flask_sock import Sock
@@ -10,13 +10,27 @@ from flask_sock import Sock
 app = Flask(__name__)
 socket = Sock(app)
 
+log = logging.getLogger("werkzeug")
+log.setLevel(logging.ERROR)
+app.logger.disabled = True
+log.disabled = True
+
 languageModel = None
 
 
 @socket.route("/")
 def websocketHandler(ws):
     global languageModel
-    id = uuid.uuid4()
+    user = "[unknown]"
+    try:
+        user = (
+            ws.environ["HTTP_X_REAL_IP"]
+            + " "
+            + ws.environ["HTTP_USER_AGENT"].split(" ")[0]
+        )
+        # print("Connection from:", user)
+    except:
+        pass
     args = parser.parse_args()
     modelSettings = ModelSettings(
         args.temperature, args.max_new_tokens, args.model_name, args.device, True
@@ -41,7 +55,7 @@ def websocketHandler(ws):
             ws.send("#-set-#")
         elif "#-set-streaming-#" in data:
             shouldStream = data.replace("#-set-streaming-#", "")
-            print("Set streaming: ", shouldStream)
+            # print("Set streaming: ", shouldStream)
             modelSettings.setShouldStream(True if shouldStream == "true" else False)
             ws.send("#-set-#")
         elif "#-delete-#" in data:
@@ -49,7 +63,7 @@ def websocketHandler(ws):
             ws.send("#-delete-#")
             print("Deleted user's conversation.")
         elif "#-get-config-#" in data:
-            print("Sent config to front end")
+            # print("Sent config to front end")
             ws.send("#-model-name-#" + modelSettings.modelName)
             ws.send("#-device-name-#" + modelSettings.device)
             ws.send("#-max-new-tokens-#" + str(modelSettings.max_new_tokens))
@@ -66,6 +80,7 @@ def websocketHandler(ws):
                     languageModel.model,
                     args.device,
                     args.debug,
+                    user,
                 )
             finally:
                 ws.send("#f-i-n#")
