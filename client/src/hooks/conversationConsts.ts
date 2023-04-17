@@ -1,0 +1,16 @@
+export const msg = {
+  set: "#-set-#",
+  ping: "#-ping-#",
+  pong: "#-pong-#",
+  delete: "#-delete-#",
+  deviceName: "#-device-name-#",
+  maxNewTokens: "#-max-new-tokens-#",
+  setMaxNewTokens: "#-set-max-tokens-#",
+  temperature: "#-temperature-#",
+  setTemperature: "#-set-temp-#",
+  setShouldStream: "#-set-streaming-#",
+  modelName: "#-model-name-#",
+  ack: "#a-c-k#",
+  fin: "#f-i-n#",
+  getConfig: "#-get-config-#",
+};

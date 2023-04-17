@@ -3,6 +3,7 @@ import { styles } from "./AppContainer.css";
 import { palette } from "@energiz3r/component-library/src/theme";
 
 import { Header } from "@energiz3r/component-library/src/components/Header/Header";
+import { HeaderUtility } from "@energiz3r/component-library/src/components/Header/HeaderUtility/HeaderUtility";
 import { Menu } from "@energiz3r/component-library/src/components/Menu/Menu";
 import { MenuItem } from "@energiz3r/component-library/src/components/Menu/MenuItem";
 import { IntegerInput } from "@energiz3r/component-library/src/components/Inputs/IntegerInput/IntegerInput";
@@ -12,7 +13,7 @@ import { ContentHeader } from "@energiz3r/component-library/src/components/Conte
 import { Conversation } from "./Conversation/Conversation";
 import { useConversation } from "../hooks/useConversation";
 import { DarkThemeToggle } from "@energiz3r/component-library/src/components/DarkThemeToggle/DarkThemeToggle";
-import { ReactComponent as SvgLink } from "@energiz3r/component-library/src/Icons/regular/link.svg";
+
 import { ReactComponent as SvgCoffee } from "@energiz3r/component-library/src/Icons/regular/coffee.svg";
 import logoUrl from "../../assets/logo.png";
 import discordLogo from "../../assets/discord-white.png";
@@ -69,137 +70,82 @@ export const AppContainer = () => {
         shouldUseLogin={false}
         pageTitle="tanglebox.ai"
         logo={<img src={logoUrl} style={{ width: "52px" }} />}
+        shouldHaveMenu
         menuIconVariant="settings"
       >
         <p>
           {modelName} {device ? `(${device})` : null}
         </p>
-        <a
-          href="https://github.com/Energiz3r/tanglebox-model-runner"
-          style={{ display: "flex" }}
-          target="_blank"
-        >
-          <img
-            src={githubLogo}
-            style={{
-              width: "30px",
-              height: "30px",
-              marginLeft: "1rem",
-              marginRight: ".5rem",
-              marginTop: "10px",
-            }}
-          />
-          <p>
-            <span className={styles.headerLink}>GitHub</span>
-            <SvgLink
-              style={{ fill: palette.theme.textHighlight, fontSize: "12px" }}
-            />
-          </p>
-        </a>
-        <a
-          href="https://www.paypal.me/Teastwood"
-          style={{ display: "flex" }}
-          target="_blank"
-        >
-          <SvgCoffee
-            style={{
-              fill: palette.theme.textHighlight,
-              fontSize: "30px",
-              marginLeft: "1rem",
-              marginRight: ".5rem",
-              marginTop: "11px",
-            }}
-          />
-          <p>
-            <span className={styles.headerLink}>Buy me coffee</span>
-            <SvgLink
-              style={{ fill: palette.theme.textHighlight, fontSize: "12px" }}
-            />
-          </p>
-        </a>
-        <a
-          href="https://discord.com/invite/76zAeaP"
-          style={{ display: "flex" }}
-          target="_blank"
-        >
-          <img
-            src={discordLogo}
-            style={{
-              width: "32px",
-              height: "25px",
-              marginLeft: "1rem",
-              marginRight: ".5rem",
-              marginTop: "14px",
-            }}
-          />
-          <p>
-            <span className={styles.headerLink}>Join Discord</span>
-            <SvgLink
-              style={{ fill: palette.theme.textHighlight, fontSize: "12px" }}
-            />
-          </p>
-        </a>
+        <HeaderUtility
+          imageUrl={githubLogo}
+          link="https://github.com/Energiz3r/tanglebox-model-runner"
+          linkText="GitHub"
+          linkShouldOpenNewTab
+        />
+        <HeaderUtility
+          Icon={SvgCoffee}
+          link="https://www.paypal.me/Teastwood"
+          linkText="Buy me coffee"
+          linkShouldOpenNewTab
+        />
+        <HeaderUtility
+          imageUrl={discordLogo}
+          iconOrImageClassName={styles.discordImage}
+          link="https://discord.com/invite/76zAeaP"
+          linkText="Join Discord"
+          linkShouldOpenNewTab
+        />
       </Header>
-      {isMenuVisible ? (
-        <Menu onMenuClose={handleMenuClick}>
-          {isConnecting ? (
-            <MenuItem>
-              <center>
-                <span style={{ color: palette.colors.red }}>
-                  Not connected!
-                </span>
-              </center>
-            </MenuItem>
-          ) : null}
 
+      <Menu isVisible={isMenuVisible} onMenuClose={handleMenuClick}>
+        {isConnecting ? (
           <MenuItem>
-            <p>Stream responses {shouldStreamResponses}</p>
-            <div
-              style={{
-                backgroundColor: palette.theme.lightShade,
-                borderRadius: "30px",
-                width: "93px",
-                paddingBottom: "12px",
-              }}
-            >
-              <DarkThemeToggle
-                defaultMode={shouldStreamResponses ? "dark" : "light"}
-                onClick={handleToggleStreaming}
-              />
-            </div>
+            <center>
+              <span style={{ color: palette.colors.red }}>Not connected!</span>
+            </center>
           </MenuItem>
+        ) : null}
 
-          <MenuItem>
-            <p>Temperature</p>
-            <FloatInput
-              onChange={changeTemperature}
-              defaultValue={temperature}
-              maxValue={100}
-              fullWidth
-              step={0.1}
-              enabled={Boolean(socket)}
+        <MenuItem>
+          <p>Stream responses {shouldStreamResponses}</p>
+          <div className={styles.toggleBackground}>
+            <DarkThemeToggle
+              defaultMode={shouldStreamResponses ? "dark" : "light"}
+              onClick={handleToggleStreaming}
             />
-          </MenuItem>
+          </div>
+        </MenuItem>
 
-          <MenuItem>
-            <p>Max Tokens</p>
-            <IntegerInput
-              onChange={changeMaxTokens}
-              defaultValue={maxTokens}
-              maxValue={10000}
-              fullWidth
-              enabled={Boolean(socket)}
-            />
-          </MenuItem>
+        <MenuItem>
+          <p>Temperature</p>
+          <FloatInput
+            onChange={changeTemperature}
+            defaultValue={temperature}
+            maxValue={100}
+            fullWidth
+            step={0.1}
+            enabled={Boolean(socket)}
+          />
+        </MenuItem>
 
-          <MenuItem>
-            <p>More settings coming soon</p>
-          </MenuItem>
-        </Menu>
-      ) : null}
+        <MenuItem>
+          <p>Max Tokens</p>
+          <IntegerInput
+            onChange={changeMaxTokens}
+            defaultValue={maxTokens}
+            maxValue={10000}
+            fullWidth
+            enabled={Boolean(socket)}
+          />
+        </MenuItem>
+
+        <MenuItem>
+          <p>More settings coming soon</p>
+        </MenuItem>
+      </Menu>
 
       <ContentSection>
-        <ContentHeader label="conversation" color="green" isCentered />
+        <ContentHeader label="conversation" presetColor="green" isCentered />
         <Conversation
           isConnecting={isConnecting}
           isAwaitingResponse={isAwaitingResponse}

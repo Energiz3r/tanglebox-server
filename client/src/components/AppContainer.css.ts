@@ -16,4 +16,17 @@ export const styles = {
       display: "initial",
     }),
   ]),
+  discordImage: style({
+    width: "32px",
+    height: "25px",
+    marginLeft: "1rem",
+    marginRight: ".5rem",
+    marginTop: "14px",
+  }),
+  toggleBackground: style({
+    backgroundColor: palette.theme.lightShade,
+    borderRadius: "30px",
+    width: "93px",
+    paddingBottom: "12px",
+  }),
 };

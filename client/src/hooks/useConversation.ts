@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { conversationMessage } from "../components/Conversation/Conversation";
+import { useInterval } from "@energiz3r/component-library/src/utils/useInterval";
+import { msg } from "./conversationConsts";
 
 const processLinebreaks = (msg: string, isStreaming: boolean) => {
   const replacePiece = (piece: string) => {
@@ -16,14 +18,12 @@ const processLinebreaks = (msg: string, isStreaming: boolean) => {
     if (processingCode) msgProcessed += piece;
     else msgProcessed += replacePiece(piece);
   }
-  //console.log(msgParts, msgProcessed);
   return msgProcessed;
 };
 
 // @ts-ignore
 const isDev = import.meta.env.DEV;
 const protocol = location.protocol === "https:" ? "wss" : "ws";
-//const protocol = 'wss'
 const host = isDev
   ? `${protocol}://localhost:8080`
   : `${protocol}://${location.host}`;
@@ -47,35 +47,43 @@ export const useConversation = ({
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(512);
 
+  const resetStatePartial = () => {
+    setIsAwaitingResponse(false);
+    setConversation([]);
+    setMessageBuffer("");
+    setIsProcessingBackticks(false);
+  };
+
   const socketHandler = (event: any) => {
     let thisMessage = event.data || "";
-    if (thisMessage.includes("#-set-#")) return;
-    if (thisMessage.includes("#-delete-#")) {
+    if (thisMessage.includes(msg.set)) return;
+    if (thisMessage.includes(msg.pong)) return;
+    if (thisMessage.includes(msg.delete)) {
       setConversation([]);
       return;
     }
-    if (thisMessage.includes("#-device-name-#")) {
-      setDevice(thisMessage.replace("#-device-name-#", "").toUpperCase());
+    if (thisMessage.includes(msg.deviceName)) {
+      setDevice(thisMessage.replace(msg.deviceName, "").toUpperCase());
       return;
     }
-    if (thisMessage.includes("#-max-new-tokens-#")) {
-      setMaxTokens(parseInt(thisMessage.replace("#-max-new-tokens-#", "")));
+    if (thisMessage.includes(msg.maxNewTokens)) {
+      setMaxTokens(parseInt(thisMessage.replace(msg.maxNewTokens, "")));
       return;
     }
-    if (thisMessage.includes("#-temperature-#")) {
-      setTemperature(parseFloat(thisMessage.replace("#-temperature-#", "")));
+    if (thisMessage.includes(msg.temperature)) {
+      setTemperature(parseFloat(thisMessage.replace(msg.temperature, "")));
       return;
     }
-    if (thisMessage.includes("#-model-name-#")) {
-      let model = thisMessage.replace("#-model-name-#", "");
+    if (thisMessage.includes(msg.modelName)) {
+      let model = thisMessage.replace(msg.modelName, "");
       model = model.slice(model.lastIndexOf("\\") + 1);
       model = model.slice(model.lastIndexOf("/") + 1);
       setModelName(model);
       return;
     }
     const isCodeBlockBoundary = thisMessage.includes("```");
-    const isAcknowdledgement = thisMessage.includes("#a-c-k#");
-    const isServerFinished = thisMessage.includes("#f-i-n#");
+    const isAcknowdledgement = thisMessage.includes(msg.ack);
+    const isServerFinished = thisMessage.includes(msg.fin);
 
     if (isCodeBlockBoundary) {
       const numOfBacktickSets = (thisMessage.match(/```/g) || []).length;
@@ -103,6 +111,7 @@ export const useConversation = ({
 
     if (isServerFinished) {
       setIsAwaitingResponse(false);
+      setIsProcessingBackticks(false);
       if (shouldStreamResponses) return;
       const thisMsg = messageBuffer;
       const newConvo = conversation;
@@ -150,19 +159,19 @@ export const useConversation = ({
 
   const changeMaxTokens = (value: number) => {
     if (socket) {
-      socket.send(`#-set-max-tokens-#${value}`);
+      socket.send(`${msg.setMaxNewTokens}${value}`);
       setMaxTokens(value);
     }
   };
   const changeTemperature = (value: number) => {
     if (socket) {
-      socket.send(`#-set-temp-#${value}`);
+      socket.send(`${msg.setTemperature}${value}`);
       setTemperature(value);
     }
   };
   const changeStreaming = (value: boolean) => {
     if (socket) {
-      socket.send(`#-set-streaming-#${value ? "true" : "false"}`);
+      socket.send(`${msg.setShouldStream}${value ? "true" : "false"}`);
     }
   };
 
@@ -170,7 +179,7 @@ export const useConversation = ({
     console.log("Connected");
     setIsConnecting(false);
     if (socket) {
-      socket.send(`#-get-config-#`);
+      socket.send(msg.getConfig);
     }
   };
 
@@ -183,12 +192,19 @@ export const useConversation = ({
 
   const socketDisconnectHandler = () => {
     console.log("Disconnected");
+    resetStatePartial();
     setIsConnecting(true);
     setTimeout(() => {
       console.log("Reconnecting...");
       connect();
     }, 1000);
   };
+
+  const ping = () => {
+    if (socket) socket.send(msg.ping);
+  };
+
+  useInterval(ping, 3000);
 
   useEffect(() => {
     connect();
@@ -229,7 +245,7 @@ export const useConversation = ({
   };
   const discardConversation = () => {
     if (socket) {
-      socket.send("#-delete-#");
+      socket.send(msg.delete);
     }
   };
 

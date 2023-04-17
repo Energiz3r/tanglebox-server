@@ -2,12 +2,29 @@ import { useState } from "react";
 import { styles } from "./Conversation.css";
 import { palette } from "@energiz3r/component-library/src/theme";
 import { TextInput } from "@energiz3r/component-library/src/components/Inputs/TextInput/TextInput";
-import { TextWithMarkdown } from "../TextWithMarkdown/TextWithMarkdown";
+import { TextWithMarkdown } from "@energiz3r/component-library/src/components/TextWithMarkdown/TextWithMarkdown";
 import { Bouncer } from "@energiz3r/component-library/src/components/Bouncer/Bouncer";
 import { ReactComponent as SvgMicrochip } from "@energiz3r/component-library/src/Icons/regular/microchip.svg";
 import { ReactComponent as SvgUser } from "@energiz3r/component-library/src/Icons/regular/user.svg";
 import { ReactComponent as SvgTrashAlt } from "@energiz3r/component-library/src/Icons/regular/trash-alt.svg";
 import { ReactComponent as SvgQuestionCircle } from "@energiz3r/component-library/src/Icons/regular/question-circle.svg";
+
+// useEffect(() => {
+//   let codeElems = document.getElementsByClassName("code-line");
+//   if (codeElems?.length) {
+//     for (let item of codeElems) {
+//       // @ts-ignore
+//       item.style.fontFamily = typography.fontFamily;
+//     }
+//   }
+//   let containerElems = document.getElementsByClassName("w-md-editor");
+//   if (containerElems?.length) {
+//     for (let item of containerElems) {
+//       // @ts-ignore
+//       item.style.fontFamily = typography.fontFamily;
+//     }
+//   }
+// }, [textWithMarkdown]);
 
 export type conversationMessage = {
   role: string;
@@ -128,6 +145,7 @@ export const Conversation = ({
               fullWidth
               emptyOnEnter
               enabled={!isAwaitingResponse}
+              allowMarkdown
             />
             <span className={styles.inputLabel}>
               type your input and press enter to send
