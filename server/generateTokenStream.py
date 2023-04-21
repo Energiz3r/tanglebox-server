@@ -33,14 +33,22 @@ def generateTokenStream(
     # print("input_ids", input_ids)
 
     for i in range(max_new_tokens):
+        if debug:
+            print("Modelling a token...")
         if i == 0:
             out = model(
                 input_ids=tokensByDevice(device, input_ids, True, debug, debug),
                 use_cache=True,
             )
+            if debug:
+                print("setting logits...")
             logits = out.logits
+            if debug:
+                print("setting past key values...")
             past_key_values = out.past_key_values
         else:
+            if debug:
+                print("setting attention mask...")
             if device == "cuda":
                 attention_mask = torch.ones(
                     1, past_key_values[0][0].shape[-2] + 1, device="cuda"
@@ -53,7 +61,11 @@ def generateTokenStream(
                 attention_mask=attention_mask,
                 past_key_values=past_key_values,
             )
+            if debug:
+                print("setting logits...")
             logits = out.logits
+            if debug:
+                print("setting past key values...")
             past_key_values = out.past_key_values
 
         if debug:
@@ -90,6 +102,8 @@ def generateTokenStream(
             output_idsPatched = output_ids
 
         if token == tokenizer.eos_token_id:
+            if debug:
+                print("Stopped generating because tokenizer found EOS token id:", token)
             stopped = True
         else:
             stopped = False
@@ -98,6 +112,8 @@ def generateTokenStream(
             output = tokenizer.decode(output_idsPatched, skip_special_tokens=True)
             pos = output.rfind(stop_str, l_prompt)
             if pos != -1:
+                if debug:
+                    print("Stopped generating because output contained",stop_str,"and it wasn't at the end:", output)
                 output = output[:pos]
                 stopped = True
             yield output

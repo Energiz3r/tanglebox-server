@@ -25,7 +25,7 @@ const processLinebreaks = (msg: string, isStreaming: boolean) => {
 const isDev = import.meta.env.DEV;
 const protocol = location.protocol === "https:" ? "wss" : "ws";
 const host = isDev
-  ? `${protocol}://localhost:8080`
+  ? `${protocol}://localhost:8081`
   : `${protocol}://${location.host}`;
 if (isDev) console.log(`Dev mode - using ${host} for websocket endpoint`);
 

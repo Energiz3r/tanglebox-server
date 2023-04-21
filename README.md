@@ -31,12 +31,25 @@ Reboot
 
 ## Installation
 
+(without conda, on Windows)
+
 - Install `python-3.8.0` and VS2019 as above, if needed
 - Make sure pip is up to date: `python -m pip install --upgrade pip`
 - Depending on whether you want to use an Nvidia GPU for inferencing:
   `pip install -r requirements-cuda.txt` or `pip install -r requirements-cpu.txt`
 
 The CUDA option allows CPU, but the CPU-only install saves doing a ~2GB download.
+
+(with conda)
+
+- Install VS2019 as above, if needed, or perhaps: `conda install compilers -c conda-forge` (untested)
+
+```
+conda create -n tanglebox python=3.8.0
+conda activate tanglebox
+(for CPU only) pip install -r requirements-cpu.txt
+(for CUDA) pip install -r requirements-cpu.txt
+```
 
 [troubleshooting](#troubleshooting)
 
@@ -52,7 +65,7 @@ eg
 
 `python main.py --model-path E:/models/vicuna-13b`
 
-For ggml models, the path should be to the **file**, eg `python main.py --model-path E:\models\ggml-vicuna-7b-1.1\ggml-vicuna-7b-1.1-q4_0.bin`
+For ggml models, the path should be to the **file**, eg `python main.py --model-path E:\models\ggml-vicuna-7b-1.1\ggml-vicuna-7b-1.1-q4_0.bin --cpu-ggml`
 
 For everything else, the path should be to the **folder** containing the model.
 
@@ -65,12 +78,13 @@ Using `--device cpu-ggml` will cause tanglebox to use pyllamacpp backend for inf
 --max-new-tokens <integer> default=512
 --device "cuda" | "cpu" | "cpu-ggml" | "mps" default=cuda
 --port <integer> default=8080
---conv-template <string> default=v1 see convos.py for templating and instructions
+--conv-template <string> default=vicuna1.1 see conversationTemplates.py for templating and instructions
 --num-gpus <integer> default=1
 --debug
 --ssl enable SSL mode
 --load-8bit - haven't been able to get this working but have copied LMsys' code verbatim so beats me why
---eos - uses </s> instead of ### for conversation separators
+--eos - allow specifying custom eos token
+--vram-gb - GB of vram you have available default=13
 ```
 
 Then open your browser and navigate to `localhost:8080` (or whatever port you specified)
@@ -92,6 +106,7 @@ Source - Client
 "#-set-streaming-#" - string "true" | "false"
 "#-get-config-#"
 "#-delete-#"
+"#-ping-#"
 
 Source - Server
 "#-set-#" - acknowledgement to any client "#-set-xxx-#" messages. ignored on front end
@@ -102,6 +117,7 @@ Source - Server
 "#-temperature-#" - float
 "#a-c-k#" - acknowledgement to prompt input (tells front end to wait for a reply)
 "#f-i-n#" - follows completion of the inferencing, even if there was an error (tells front end model has finished output)
+"#-pong-#"
 ```
 
 This should probably become a separate route for control messages, but the need has yet to arise for me and this prevents me having to put websocket instances onto a global object (or somesuch) to maintain context of the client session - KISS

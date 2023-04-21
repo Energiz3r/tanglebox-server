@@ -45,7 +45,7 @@ class LanguageModel:
         if isGgmlDetected:
             print("Configuring for ggml")
             self.tokenizer = None
-            self.model = Model(ggml_model=model_name, n_ctx=2048, log_level=0)
+            self.model = Model(ggml_model=model_name, n_ctx=512) #log_level=0,
             print("Language model initialised.")
             return
 
@@ -59,14 +59,14 @@ class LanguageModel:
                 "max_memory": {i: str(vram_gb) + "GiB" for i in range(num_gpus)},
             }
         elif device == "cuda":
-            print("Configuring for CUDA acceleration")
+            print("Configuring for CUDA acceleration", vram_gb, "GB of vram", num_gpus, "GPUs")
             num_gpus = int(num_gpus)
             kwargs = {
                 "torch_dtype": torch.half,
                 "low_cpu_mem_usage": True,
                 "device_map": "auto",
                 "max_memory": {i: str(vram_gb) + "GiB" for i in range(num_gpus)},
-                # "offload_folder": "./offload",
+                "offload_folder": "./offload",
             }
         elif device == "mps":
             print("Configuring for Apple silicon")
@@ -105,13 +105,14 @@ class LanguageModel:
         else:
             self.model = AutoModelForCausalLM.from_pretrained(model_name, **kwargs)
 
+        if load_8bit:
+            print("Compressing model...")
+            compress_module(self.model, device)
+
         if (device == "cuda" and num_gpus == 1) or device == "mps":
             self.model.to(device)
         else:
             self.model.to(memory_format=torch.channels_last)
 
-        if load_8bit:
-            print("Compressing model...")
-            compress_module(self.model, device)
-
+        
         print("Language model initialised.")

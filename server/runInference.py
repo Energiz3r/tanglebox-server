@@ -1,4 +1,4 @@
-from convos import SeparatorStyle
+from conversationClass import SeparatorStyle
 from generateTokenStream import generateTokenStream
 from multiprocessing import cpu_count
 
@@ -12,7 +12,7 @@ def runInference(
     model,
     device,
     debug,
-    user,
+    user
 ):
     try:
         inp = inputString
@@ -23,7 +23,7 @@ def runInference(
         return
 
     # print(f"{conversation.roles[0]}: {inputString}")
-    print("From ", user + ":", inputString)
+    print("From", user + ":", inputString)
 
     if debug:
         print(f'Received input "{inp}"')
@@ -32,7 +32,7 @@ def runInference(
         print("Preparing conversation...")
     conversation.append_message(conversation.roles[0], inp)
     conversation.append_message(conversation.roles[1], None)
-    prompt = conversation.get_prompt()
+    prompt = conversation.getPromptForModel()
 
     if debug:
         print(
@@ -55,34 +55,32 @@ def runInference(
     # print(f"{conversation.roles[1]}: ", end="", flush=True)
 
     if device != "cpu-ggml":
-        pre = 0
+        outputLength = 0
+        promptForOutput = conversation.getPromptForOutput()
         if debug:
             print("Declaring token generators...")
         tokenGenerators = generateTokenStream(tokenizer, model, params, device, debug)
         if debug:
             print("Executing token generators...")
         for modelOutput in tokenGenerators:
-            modelOutputMinusPrompt = modelOutput[len(prompt) + 1 :].strip()
-            modelOutput = modelOutputMinusPrompt
-            modelOutput = modelOutput.split(" ")
-            now = len(modelOutput)
-            if now - 1 > pre:
-                # print(" ".join(modelOutput[pre : now - 1]), end=" ", flush=True)
-                currentOutput = " ".join(modelOutput[pre : now - 1]) + " "
+            modelOutputMinusPrompt = modelOutput[len(promptForOutput) + 1 :].strip()
+            thisTokenSplitBySpace = modelOutputMinusPrompt.split(" ")
+            thisTokenLength = len(thisTokenSplitBySpace)
+            if thisTokenLength - 1 > outputLength: # don't send another token if it's not a whole word yet (ie. no new spaces)
+                thisTokenOutput = " ".join(thisTokenSplitBySpace[outputLength : thisTokenLength - 1]) + " "
+                outputLength = thisTokenLength - 1
                 if modelSettings.shouldStream:
-                    websocket.send(currentOutput)
-                pre = now - 1
-        finalOutput = " ".join(modelOutput[pre:])
-        # print(finalOutput, flush=True)
+                    websocket.send(thisTokenOutput)
+        finalOutput = " ".join(thisTokenSplitBySpace[outputLength:])
+        conversation.messages[-1][-1] = " ".join(thisTokenSplitBySpace)
+
         if modelSettings.shouldStream:
             websocket.send(finalOutput)
-        conversation.messages[-1][-1] = " ".join(modelOutput)
 
-        print("To ", user + ":", conversation.messages[-1][-1])
-
+        print("To", user + ":", conversation.messages[-1][-1])
         if not modelSettings.shouldStream:
-            # print("MESSAGE NOT STREAMED")
             websocket.send(conversation.messages[-1][-1])
+
     else:
         finalOutputDict = {"finalOutput": ""}
 
@@ -100,7 +98,6 @@ def runInference(
         #                                                         the actual input from UI
         #
         # `inputString` is the raw input, eg.: Hello
-
         llamaCppPrompt = prompt  # includes conversation history
         # llamaCppPrompt = "### Instruction:\n\n" + inputString # no conversation history
 
@@ -110,22 +107,24 @@ def runInference(
             if modelSettings.shouldStream:  # stream model output as it's inferenced
                 websocket.send(text)
                 print(text, end="")
-                return False
+
+                #exit()
 
         print("Inferencing llamacpp with prompt:", llamaCppPrompt)
-        try:
-            model.generate(
-                llamaCppPrompt,
-                temp=modelSettings.temperature,
-                n_predict=-1,
-                new_text_callback=new_text_callback,
-                n_threads=cpu_count(),
-                verbose=False,
-            )
-        except:
-            pass
+        #try:
+        model.generate(
+            llamaCppPrompt,
+            temp=modelSettings.temperature,
+            n_predict=-1,
+            new_text_callback=new_text_callback,
+            n_threads=cpu_count(),
+            verbose=False,
+            #reverse_prompt = "###"
+        )
+        #except:
+            #finalOutputDict["finalOutput"] = finalOutputDict["finalOutput"] + "There was an error while inferencing with llama.cpp"
 
-        finalOutput = finalOutputDict["finalOutput"]
+        finalOutput = finalOutputDict["finalOutput"] + "There was an exception while inferencing."
         # finalOutput = model.generate(prompt, n_predict=55, n_threads=8)
 
         # send model output in one chunk once inference is finished
