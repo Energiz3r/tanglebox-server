@@ -1,5 +1,6 @@
 import torch
 from utils import tokensByDevice
+from utils import bcolors
 
 
 # missing the @torch.inference_mode() decorator causes an error:
@@ -7,13 +8,10 @@ from utils import tokensByDevice
 # Noted here because of the time I wasted debugging. Line must be in every .py file running an inference not just the main
 @torch.inference_mode()
 def generateTokenStream(
-    tokenizer, model, params, device, debug, context_len=2048, stream_interval=2
+    tokenizer, model, inputPrompt, temperature, maxNewTokens, separator, device, debug, context_len=2048, stream_interval=2
 ):
-    prompt = params["prompt"]
-    temperature = params["temperature"]
-    max_new_tokens = params["max_new_tokens"]
+    prompt = inputPrompt
     l_prompt = len(prompt)
-    stop_str = params.get("stop", None)
 
     if debug:
         print("Prompt:\n\n", prompt, "\n\n")
@@ -27,12 +25,12 @@ def generateTokenStream(
 
     output_ids = list(input_ids)
 
-    max_src_len = context_len - max_new_tokens - 8
+    max_src_len = context_len - maxNewTokens - 8
     input_ids = input_ids[-max_src_len:]
 
     # print("input_ids", input_ids)
 
-    for i in range(max_new_tokens):
+    for i in range(maxNewTokens):
         if debug:
             print("Modelling a token...")
         if i == 0:
@@ -108,12 +106,12 @@ def generateTokenStream(
         else:
             stopped = False
 
-        if i % stream_interval == 0 or i == max_new_tokens - 1 or stopped:
+        if i % stream_interval == 0 or i == maxNewTokens - 1 or stopped:
             output = tokenizer.decode(output_idsPatched, skip_special_tokens=True)
-            pos = output.rfind(stop_str, l_prompt)
+            pos = output.rfind(separator, l_prompt)
             if pos != -1:
                 if debug:
-                    print("Stopped generating because output contained",stop_str,"and it wasn't at the end:", output)
+                    print("Stopped generating because output contained '",separator,"'")
                 output = output[:pos]
                 stopped = True
             yield output

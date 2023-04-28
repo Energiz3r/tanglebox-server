@@ -99,7 +99,6 @@ class LanguageModel:
             self.tokenizer = tokenizer
 
             return 
-            return #load_compress_model(model_path=model_path,device=device)
 
         if "chatglm" in model_name:
             print("Configuring for chatglm model type")
@@ -168,3 +167,5 @@ class LanguageModel:
 
         
         print("Language model initialised.")
+    def close(self):
+        self.model.close()
