@@ -167,19 +167,18 @@ def initWebServer(app):
                 abort(400, "Invalid conversation template. Must be one of: " + ", ".join(conversationTemplates.keys()))
             conversation = conversationTemplates[data['conversationTemplate']].copy()
         else:
-            if not "conversationHistory" in data or not "systemPrompt" in data or not "messageSeparator" in data:
-                abort(400, "Missing conversation template parameters and no template supplied. Reqd: systemPrompt, messageSeparator, conversationHistory. Or supply conversationTemplate: Must be one of:" + ', '.join(conversationTemplates.keys()))
+            conversation = conversationTemplates[settings['conversationTemplate']].copy()
+        if "conversationHistory" in data:
             try:
-                conversationHistory = [(item[0], item[1]) for item in data["conversationHistory"]]
+                conversation.messages.append([(item[0], item[1]) for item in data["conversationHistory"]])
             except:
                 abort(400, "Bad conversation history JSON format. Should be: {['Role', 'Message'], ...}")
-            conversation = Conversation(
-                system = data["systemPrompt"],
-                messages = conversationHistory,
-                sep = data["messageSeparator"],
-                modelOutputSeparator = None if not "outputSeparator" in data else data["outputSeparator"]
-            )
-        
+        if "messageSeparator" in data:
+            conversation.sep = data["messageSeparator"]
+        if "systemPrompt" in data:
+            conversation.system = data["systemPrompt"]
+        if "outputSeparator" in data:
+            conversation.modelOutputSeparator = data["outputSeparator"]        
         
         conversation.append_message(conversation.roles[0], data["userPrompt"])
         conversation.append_message(conversation.roles[1], None)
