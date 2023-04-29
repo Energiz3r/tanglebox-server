@@ -140,7 +140,7 @@ Send request to `localhost:8080/conversation`. POST with json or GET are both su
     "token" string - required if enabled
     "systemPrompt" string - optional
     "userPrompt" string
-    "conversationHistory" JSON array of objects, each containing role, message eg. [{'Human','hi'}, {'AI','hello'}]
+    "conversationHistory" valid JSON array of arrays, each containing role and message eg. [["Human","how do magnets work?"],["Assistant","They just do."]]
     "conversationTemplate" string - must exist on server, error returned if not
     "temperature" float
     "maxNewTokens" int

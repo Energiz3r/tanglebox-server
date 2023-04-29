@@ -169,10 +169,15 @@ def initWebServer(app):
         else:
             conversation = conversationTemplates[settings['conversationTemplate']].copy()
         if "conversationHistory" in data:
-            try:
-                conversation.messages.append([(item[0], item[1]) for item in data["conversationHistory"]])
-            except:
-                abort(400, "Bad conversation history JSON format. Should be: {['Role', 'Message'], ...}")
+            convHistoryList = json.loads(data["conversationHistory"])
+            print('conversation history was:', type(convHistoryList), convHistoryList)
+            conversation.messages.append([(item[0], item[1]) for item in convHistoryList])
+            # try:
+                
+                
+            # except:
+                
+            abort(400, "Bad conversation history JSON format. Should be: {['Role', 'Message'], ...}")
         if "messageSeparator" in data:
             conversation.sep = data["messageSeparator"]
         if "systemPrompt" in data:

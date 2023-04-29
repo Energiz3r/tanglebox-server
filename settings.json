@@ -7,11 +7,11 @@
     "isApiTokensRequired": true,
     "maintenanceMode": false,
     "maxNewTokens": 512,
-    "modelName": "D:/AI/models/vicuna-7b-v11",
+    "modelName": "D:/AI/models/opt-1.3b",
     "numberOfGpus": 1,
     "port": 8080,
     "temperature": 0.7,
-    "use8BitCompression": true,
+    "use8BitCompression": false,
     "useSsl": false,
     "vRamGb": 13
 }
