@@ -5,6 +5,7 @@ from checkApiToken import checkApiToken
 from conversationTemplates import conversationTemplates
 from settings import loadSettings
 from conversationClass import Conversation
+from utils import processConvo
 
 import logging
 import json
@@ -136,16 +137,13 @@ def initWebServer(app):
     @app.route("/conversation", methods=['POST', "GET"])
     def conversationRoute():
         # params:
-        # "token"
-        # "systemPrompt"
-        # "userPrompt"
-        # "conversationHistory"
-        # "conversationTemplate"
-        # "temperature"
-        # "maxNewTokens"
-        # "shouldStreamResponse"
-        # "messageSeparator"
-        # "outputSeparator"
+        # "token" */?
+        # "userPrompt" *
+        # "systemPrompt" ?
+        # "conversationHistory" ?
+        # "temperature" ?
+        # "maxNewTokens" ?
+        # "shouldStreamResponse" ?
         global languageModel
         if request.method == 'POST':
             data = request.get_json()
@@ -162,35 +160,29 @@ def initWebServer(app):
                     abort(401, "Unaccepted token")
         if not "userPrompt" in data:
             abort(400, "Missing user prompt")
-        if 'conversationTemplate' in data:
-            if not data['conversationTemplate'] in conversationTemplates:
-                abort(400, "Invalid conversation template. Must be one of: " + ", ".join(conversationTemplates.keys()))
-            conversation = conversationTemplates[data['conversationTemplate']].copy()
-        else:
-            conversation = conversationTemplates[settings['conversationTemplate']].copy()
+        conversation = conversationTemplates[settings['conversationTemplate']].copy()
+        userRole = conversation.roles[0]
+        aiRole = conversation.roles[1]
+        if "systemPrompt" in data:
+            conversation.system = data["systemPrompt"]  
         if "conversationHistory" in data:
-            convHistoryList = json.loads(data["conversationHistory"])
-            print('conversation history was:', type(convHistoryList), convHistoryList)
-            conversation.messages.append([(item[0], item[1]) for item in convHistoryList])
+            customConvo = processConvo(data["conversationHistory"], userRole, aiRole)
+            if isinstance(customConvo, str):
+                abort(400, customConvo)
+            else:
+                conversation.messages = customConvo
             # try:
-                
-                
+            #     convHistoryList = json.loads(data["conversationHistory"])
+            #     convHistoryPyList = [(item[0], item[1]) for item in convHistoryList]
+            #     print('convHistory', convHistoryPyList)
+            #     conversation.messages.append(convHistoryPyList)
             # except:
                 
-            abort(400, "Bad conversation history JSON format. Should be: {['Role', 'Message'], ...}")
-        if "messageSeparator" in data:
-            conversation.sep = data["messageSeparator"]
-        if "systemPrompt" in data:
-            conversation.system = data["systemPrompt"]
-        if "outputSeparator" in data:
-            conversation.modelOutputSeparator = data["outputSeparator"]        
-        
-        conversation.append_message(conversation.roles[0], data["userPrompt"])
-        conversation.append_message(conversation.roles[1], None)
+        conversation.append_message(userRole, data["userPrompt"])
+        conversation.append_message(aiRole, None)
         inputPrompt = conversation.getPromptForModel()
         outputPrompt = conversation.getPromptForOutput()
         separator = conversation.sep
-
         temperature = settings['temperature'] if not 'temperature' in data else data['temperature']
         maxNewTokens = settings['maxNewTokens'] if not 'maxNewTokens' in data else data['maxNewTokens']
         device = settings['device']
@@ -211,7 +203,7 @@ def initWebServer(app):
                 shouldStream,
             )
         else:
-            result = "Maintenance mode"        
+            abort(503, "API is undergoing maintenance, please try again later")
 
         if shouldStream:
             return Response(stream_with_context(result))

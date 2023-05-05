@@ -1,6 +1,6 @@
 flask==2.2.3
 flask_sock==0.6.0
-git+https://github.com/huggingface/transformers@v4.28.0
+transformers-4.28.0-py3-none-any.whl
 sentencepiece==0.1.97
 accelerate==0.18.0
 cryptography==40.0.1

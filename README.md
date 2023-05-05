@@ -8,10 +8,10 @@ vicuna-7b-v1.1 fits in 8GB VRAM on a 3000 or newer nvidia card, and vicuna-13b-v
 
 ### Back End
 
-- REST API endpoint
+- [REST API endpoint](#REST-Endpoint)
 - Pure websocket endpoint
 - Web server for UI
-- Model inferencing using either pytorch / HF transformers or pyllama.cpp for optimal performance
+- Model inferencing using either pytorch / HF transformers or pyllama.cpp
 - On the fly 8bit quantization to fit large models in minimal VRAM
 
 ### Front End
@@ -24,51 +24,51 @@ See [development](#development) for future features or way to contribute
 
 Tested on windows 10, python-3.8.0
 
-## Windows Installation Pre-requisites
-
-Install Visual Studio Build Tools 2019. If you get errors during python install about wheel build fails or python
-
-- select "Desktop development with C++" under the main Workloads area
-
-On the right hand side, the following optional modules should be selected:
-
-- MSVC - VS 2019 C++ x64/x86 build tools (latest)
-- Windows 10 SDK
-- C++ CMake tools for Windows
-- Testing tools core features - Build Tools
-- C++ AddressSanitizer
-
-Reboot
-
 ## Installation
 
-(without conda, on Windows)
+Note: Selecting the CUDA option still allows for CPU-based inferencing
+
+### With conda, Windows
+
+- Run `install_win64_with_conda.bat`
+
+This script will install miniconda3 for you if not already installed
+
+### Without conda, Windows
 
 - Install `python-3.8.0` and VS2019 as above, if needed
 - Make sure pip is up to date: `python -m pip install --upgrade pip`
-- Depending on whether you want to use an Nvidia GPU for inferencing:
-  `pip install -r requirements-cuda.txt` or `pip install -r requirements-cpu.txt`
+- With CUDA acceleration:
+  - use `pip install -r requirements-cuda.txt`
+- CPU only:
+  - use `pip install -r requirements-cpu`
 
-The CUDA option allows CPU, but the CPU-only install saves doing a ~2GB download.
+### Other OSs including 32-bit Windows
 
-(with conda)
+I've included the .whl for HuggingFace transformers for 64-bit Windows to greatly simplify the installation, which usually requires a c++ compiler to build during install. If you're not running Windows or for some reason are not on 64-bit, you'll need VS2019 or another appropriate c++ compiler installed - maybe try `conda install compilers -c conda-forge`.
 
-- Install VS2019 as above, if needed, or perhaps: `conda install compilers -c conda-forge` (untested)
-
-```
-conda create -n tanglebox python=3.8.0
-conda activate tanglebox
-(for CPU only) pip install -r requirements-cpu.txt
-(for CUDA) pip install -r requirements-cpu.txt
-```
+- With conda
+  - Install miniconda3
+  - In a command line: `conda create -n tanglebox python=3.8.0`
+  - Then: `conda activate tanglebox`
+- Without conda
+  - Install python 3.8.0
+- Make sure pip is up to date: `python -m pip install --upgrade pip`
+- To install transformers `pip install -r requirements-transformers.txt`
+- With CUDA acceleration:
+  - use `pip install -r requirements-cuda.txt`
+- CPU only:
+  - use `pip install -r requirements-cpu`
 
 [troubleshooting](#troubleshooting)
 
 ## Usage
 
-Execute: `python main.py`
+On windows, use: `run_with_conda.bat` or `run_native.bat`
 
-a `settings.json` file will be generated:
+Otherwise, just execute: `python main.py`
+
+A `settings.json` file will be generated:
 
 ```json
 {
@@ -76,25 +76,25 @@ a `settings.json` file will be generated:
   "device": "cuda", // "cuda" | "cpu" | "cpu-ggml" | "mps"
   "enableApi": true, // enables REST API
   "enableModelDebugOutput": false,
-  "enableWebLogOutput": true,
-  "isApiTokensRequired": false, // requires a token, which is specified in tokens.txt. Any value is accepted
-  "maintenanceMode": false, // won't load a model, good for testing endpoints
+  "enableWebLogOutput": false,
+  "isApiTokensRequired": false, // requires API users to have a token
+  "maintenanceMode": false,
   "maxNewTokens": 512,
-  "modelName": "D:/AI/models/vicuna-13b-v11", // see below
+  "modelName": "models/vicuna-13b-v11", // see below
   "numberOfGpus": 1,
   "port": 8080,
   "temperature": 0.7,
   "use8BitCompression": true, // applies to CUDA device only
   "useSsl": false, // enable SSL connections
-  "vRamGb": 13
+  "vRamGb": 13 // how much VRAM you have / wish to allow
 }
 ```
 
-- For ggml models, the path should be to the **file**, eg `python main.py --model-path E:\models\ggml-vicuna-7b-1.1\ggml-vicuna-7b-1.1-q4_0.bin --cpu-ggml`
+- For ggml models, the `modelName` value should be the path to the **file**, eg `python main.py --model-path E:\models\ggml-vicuna-7b-1.1\ggml-vicuna-7b-1.1-q4_0.bin --cpu-ggml`
 
-- For everything else, the path should be to the **folder** containing the model.
+- For everything else, the value should be the path to the **folder** containing the model.
 
-Then open your browser and navigate to `localhost:8080`
+If the default settings.json needed modification, restart the process, then open your browser and navigate to `localhost:8080`
 
 ## Development
 
@@ -137,16 +137,17 @@ Send request to `localhost:8080/conversation`. POST with json or GET are both su
 
 ### params:
 
-    "token" string - required if enabled
+    "token" string - required (if enabled)
+    "userPrompt" string - required
     "systemPrompt" string - optional
-    "userPrompt" string
-    "conversationHistory" valid JSON array of arrays, each containing role and message eg. [["Human","how do magnets work?"],["Assistant","They just do."]]
-    "conversationTemplate" string - must exist on server, error returned if not
-    "temperature" float
-    "maxNewTokens" int
-    "shouldStreamResponse" boolean (string "true" or "false")
-    "messageSeparator" string - optional
-    "outputSeparator" string - optional
+    "conversationHistory" valid JSON array of arrays, see below - optional
+    "temperature" float - optional
+    "maxNewTokens" int - optional
+    "shouldStreamResponse" string "true" or "false" - optional
+
+If supplying a value for `conversationHistory`, the JSON structure should be an array of arrays containing role and message, eg. `[["Human","how do magnets work?"],["Assistant","They just do."]]`
+
+Valid role values are string literals `"Human"` or `"AI"`. The actual role strings used by the model is dependent on the conversation template applied in settings.json. This way the user of the API is not concerned with any specifics of the model config in use by the server.
 
 ## Conversation Templates
 
@@ -158,14 +159,32 @@ For vicuna v1.1, ensure you use the correct templates for the stop token to work
 
 If using SSL (https) and stuck on 'connecting', check it's enabled in settings.json.
 
-For installation errors related to 'wheel build failed' or a .h file missing for sentencepiece, make sure to follow the VS2019 installation instructions above. The Win10 SDK is required for wheel builds on Windows 10. It's a shitty experience. If anyone knows how I can avoid this repo requiring it please tell me.
+If you're on a 32-bit version of windows, or for whatever reason you see errors related to 'wheel build failed' or a .h file missing for sentencepiece, that means the included transformers .whl doesn't work for you, and you'll need to install VS2019 or an equivalent c++ compiler. See below.
 
-I've not tested this on Linux or Mac, nor have I used it inside a venv. It works great in conda so I recommend that. Raise an issue if it doesn't work for you.
+I've not tested this repo on Linux or Mac, nor have I used it inside a venv. It works great in conda so I recommend that. Raise an issue if it doesn't work for you.
 
-Double check you are using the right models with the right devices. For CUDA you should have pytorch_model .bin or .pth files, you can't run ggml quantized models on GPU. I've found I need 16GB of VRAM to run the vicuna-7b model on CUDA. EDIT: vicuna-13b-v11 now fits in 16GB VRAM
+Double check you are using the right models with the right devices. For CUDA you should have pytorch_model .bin or .pth files, you can't run ggml quantized models on GPU. I've found I need 16GB of VRAM to run the vicuna-7b model on CUDA. Using 8bit compression means vicuna-13b-v11 now fits in 16GB VRAM, and 7b 1.1 in under 8GB
+
+## Model links
 
 - CUDA, fast: https://huggingface.co/eachadea/vicuna-7b-1.1
 - GGML, cpu: https://huggingface.co/eachadea/ggml-vicuna-7b-1.1
+
+## Windows VS2019 install
+
+Grab the Visual Studio Build Tools 2019 installer.
+
+- select "Desktop development with C++" under the main Workloads area
+
+On the right hand side, the following optional modules should be selected:
+
+- MSVC - VS 2019 C++ x64/x86 build tools (latest)
+- Windows 10 SDK
+- C++ CMake tools for Windows
+- Testing tools core features - Build Tools
+- C++ AddressSanitizer
+
+Reboot
 
 ## Thanks
 

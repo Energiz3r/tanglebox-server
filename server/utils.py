@@ -1,4 +1,5 @@
 import torch
+import json
 
 def tokensByDevice(device, token, isBase, debug=False, showTokens=False):
     if debug and showTokens:
@@ -60,3 +61,28 @@ def printDictAsTable(dict, title="Table output:", headers = ["Key", "Value"]):
         border += "─"
     table = bc + "┌" + border + "┐\n" + vs + tc + (" " + title).ljust(tableWidth) + bc + vs + "\n" + vs + spacer + vs + "\n" + tableHeaders + table + "└" + border + "┘" + bcolors.ENDC
     print(table)
+
+
+def processConvo(convo, humanRole, aiRole):
+    try:
+        convHistoryList = json.loads(convo)
+    except json.JSONDecodeError:
+        return "Invalid conversationHistory JSON"
+
+    if not isinstance(convHistoryList, list):
+        return 'conversationHistory JSON structure must be an array of arrays, eg. [["Human","How do magnets work?"],["AI","They just do"]]'
+
+    convHistoryPyList = []
+
+    for item in convHistoryList:
+        if not isinstance(item, list) or len(item) != 2:
+            return 'Each conversationHistory subarray must contain exactly 2 values - role and message, eg. [["Human","How do magnets work?"],["AI","They just do"]]'
+
+        role, message = item
+        if role not in ('Human', 'AI'):
+            return "conversationHistory roles must only be either 'Human' or 'AI'."
+
+        role = humanRole if role == 'Human' else aiRole
+        convHistoryPyList.append((role, message))
+
+    return convHistoryPyList

@@ -3,15 +3,15 @@
     "device": "cuda",
     "enableApi": true,
     "enableModelDebugOutput": false,
-    "enableWebLogOutput": true,
-    "isApiTokensRequired": true,
+    "enableWebLogOutput": false,
+    "isApiTokensRequired": false,
     "maintenanceMode": false,
     "maxNewTokens": 512,
-    "modelName": "D:/AI/models/opt-1.3b",
+    "modelName": "D:/AI/models/vicuna-7b-v11",
     "numberOfGpus": 1,
     "port": 8080,
     "temperature": 0.7,
     "use8BitCompression": false,
     "useSsl": false,
-    "vRamGb": 13
+    "vRamGb": 16
 }
