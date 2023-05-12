@@ -1,6 +1,6 @@
 @echo off
 
-set CONDA_ENV=tanglebox2
+set CONDA_ENV=tanglebox
 set ORIGDIR="%CD%"
 set MINICONDAPATH=%USERPROFILE%\Miniconda3
 set CONDAEXE=%TEMP%\%RANDOM%-%RANDOM%-%RANDOM%-%RANDOM%-condainstall.exe
