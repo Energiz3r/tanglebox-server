@@ -1,10 +1,10 @@
 import argparse
 from languageModel import LanguageModel
-from runInference import websocketInference, inference
+from runInference import websocketInference, apiInference
 from checkApiToken import checkApiToken
 from conversationTemplates import conversationTemplates
 from settings import loadSettings
-from conversationClass import Conversation
+from conversationClass import Conversation, get_conv_template
 from utils import processConvo
 
 import logging
@@ -13,6 +13,7 @@ import time
 
 from flask import Flask, render_template, request, Response, stream_with_context, abort
 from flask_sock import Sock
+from flask_cors import CORS
 
 app = None
 socket = None
@@ -53,11 +54,11 @@ def initWebServer(app):
         modelSettings = ModelSettings(
             temperature, newMaxTokens, modelName, device, True
         )
-        if not conversationTemplates[template]:
-            template = "vicuna1.1"
+        if not template:
+            template = "vicky"
         if debug:
             print("Using conversation template:",template)
-        conversation = conversationTemplates[template].copy()
+        conversation = get_conv_template(template)
         if debug:
             print("Ready for processing data")
 
@@ -84,7 +85,7 @@ def initWebServer(app):
                 modelSettings.setShouldStream(True if shouldStream == "true" else False)
                 ws.send("#-set-#")
             elif "#-delete-#" in data:
-                conversation = conversationTemplates[template].copy()
+                conversation = get_conv_template(template)
                 ws.send("#-delete-#")
                 if debug:
                     print("Deleted user's conversation.")
@@ -101,30 +102,30 @@ def initWebServer(app):
             else:
                 ws.send("#a-c-k#")
                 #ws.send("Sorry, I am offline for maintenance. Please try again later.")
-                try:
-                    websocketInference(
-                        data,
-                        ws,
-                        modelSettings,
-                        conversation,
-                        languageModel.tokenizer,
-                        languageModel.model,
-                        device,
-                        debug,
-                        user
-                    )
-                except:
-                    try:
-                        conv = conversation.getPromptForModel()
-                        lengthOfPrompt = len(conv)
-                        print("Error fetching response. Conversation:", lengthOfPrompt)
-                        approxNumOfTokens = len(conv.split(" "))
-                        print("Approx number of tokens:", approxNumOfTokens)
-                        ws.send(f"There was an error fetching a response. Length of prompt (chars): {lengthOfPrompt}, approx # of tokens: {approxNumOfTokens}")
-                    except:
-                        ws.send("There was an error fetching a response.")
-                finally:
-                    ws.send("#f-i-n#")
+                #try:
+                websocketInference(
+                    data,
+                    ws,
+                    modelSettings,
+                    conversation,
+                    languageModel.tokenizer,
+                    languageModel.model,
+                    device,
+                    debug,
+                    user
+                )
+                # except:
+                #     try:
+                #         conv = conversation.getPromptForModel()
+                #         lengthOfPrompt = len(conv)
+                #         print("Error fetching response. Conversation:", lengthOfPrompt)
+                #         approxNumOfTokens = len(conv.split(" "))
+                #         print("Approx number of tokens:", approxNumOfTokens)
+                #         ws.send(f"There was an error fetching a response. Length of prompt (chars): {lengthOfPrompt}, approx # of tokens: {approxNumOfTokens}")
+                #     except:
+                #         ws.send("There was an error fetching a response.")
+                # finally:
+                ws.send("#f-i-n#")
 
     def generate_response():
         start_time = time.time()
@@ -144,6 +145,8 @@ def initWebServer(app):
         # "temperature" ?
         # "maxNewTokens" ?
         # "shouldStreamResponse" ?
+        if settings["maintenanceMode"]:
+            abort(503, "API is undergoing maintenance, please try again later")
         global languageModel
         if request.method == 'POST':
             data = request.get_json()
@@ -151,7 +154,7 @@ def initWebServer(app):
             data = request.args.to_dict()
         else:
             abort(405, "Method not allowed")
-        print(data)
+        #print(data)
         if settings['isApiTokensRequired']:
             if not 'token' in data:
                 abort(401, "Missing token")
@@ -160,7 +163,7 @@ def initWebServer(app):
                     abort(401, "Unaccepted token")
         if not "userPrompt" in data:
             abort(400, "Missing user prompt")
-        conversation = conversationTemplates[settings['conversationTemplate']].copy()
+        conversation = get_conv_template(settings['conversationTemplate'])
         userRole = conversation.roles[0]
         aiRole = conversation.roles[1]
         if "systemPrompt" in data:
@@ -171,44 +174,37 @@ def initWebServer(app):
                 abort(400, customConvo)
             else:
                 conversation.messages = customConvo
-            # try:
-            #     convHistoryList = json.loads(data["conversationHistory"])
-            #     convHistoryPyList = [(item[0], item[1]) for item in convHistoryList]
-            #     print('convHistory', convHistoryPyList)
-            #     conversation.messages.append(convHistoryPyList)
-            # except:
-                
         conversation.append_message(userRole, data["userPrompt"])
         conversation.append_message(aiRole, None)
-        inputPrompt = conversation.getPromptForModel()
-        outputPrompt = conversation.getPromptForOutput()
-        separator = conversation.sep
         temperature = settings['temperature'] if not 'temperature' in data else data['temperature']
         maxNewTokens = settings['maxNewTokens'] if not 'maxNewTokens' in data else data['maxNewTokens']
         device = settings['device']
         debug = settings['enableModelDebugOutput']
         shouldStream = False if not 'shouldStream' in data else data['shouldStream']
+        isStreaming = "streaming" if shouldStream else "not streaming"
+        print(f"From API User ({isStreaming}):", data["userPrompt"])
         
-        if not settings["maintenanceMode"]:
-            result = inference(
-                languageModel.model,
-                languageModel.tokenizer,
-                inputPrompt,
-                outputPrompt,
-                temperature,
-                maxNewTokens,
-                separator,
-                device,
-                debug,
-                shouldStream,
-            )
-        else:
-            abort(503, "API is undergoing maintenance, please try again later")
+        result = apiInference(
+            languageModel,
+            conversation,
+            temperature,
+            maxNewTokens,
+            device,
+            debug,
+            shouldStream,
+        )
 
-        if shouldStream:
-            return Response(stream_with_context(result))
-        else:
-            return result
+        headers = {
+            'Access-Control-Allow-Origin': '*',
+        }
+
+        try:
+            if shouldStream:
+                return Response(stream_with_context(result), headers = headers)
+            else:
+                return Response(result, headers = headers)
+        except:
+            abort(500, "Internal Server Error")
 
 
     @app.route("/")
@@ -238,6 +234,7 @@ if __name__ == "__main__":
     settings = loadSettings()   
 
     app = Flask(__name__)
+    CORS(app)
     socket = Sock(app)
 
     initWebServer(app)

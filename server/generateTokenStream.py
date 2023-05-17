@@ -1,122 +1,150 @@
+import gc
 import torch
-from utils import tokensByDevice
-from utils import bcolors
+from transformers.generation.logits_process import (
+    LogitsProcessorList,
+    RepetitionPenaltyLogitsProcessor,
+    TemperatureLogitsWarper,
+    TopKLogitsWarper,
+    TopPLogitsWarper,
+)
 
+def prepare_logits_processor(
+    temperature: float, repetition_penalty: float, top_p: float, top_k: int
+) -> LogitsProcessorList:
+    processor_list = LogitsProcessorList()
+    # TemperatureLogitsWarper doesn't accept 0.0, 1.0 makes it a no-op so we skip two cases.
+    if temperature >= 1e-5 and temperature != 1.0:
+        processor_list.append(TemperatureLogitsWarper(temperature))
+    if repetition_penalty > 1.0:
+        processor_list.append(RepetitionPenaltyLogitsProcessor(repetition_penalty))
+    if 1e-8 <= top_p < 1.0:
+        processor_list.append(TopPLogitsWarper(top_p))
+    if top_k > 0:
+        processor_list.append(TopKLogitsWarper(top_k))
+    return processor_list
 
-# missing the @torch.inference_mode() decorator causes an error:
-# "RuntimeError: Inference tensors cannot be saved for backward. To work around you can make a clone to get a normal tensor and use it in autograd."
-# Noted here because of the time I wasted debugging. Line must be in every .py file running an inference not just the main
 @torch.inference_mode()
-def generateTokenStream(
-    tokenizer, model, inputPrompt, temperature, maxNewTokens, separator, device, debug, context_len=2048, stream_interval=2
+def generate_stream(
+    model, tokenizer, params, device, context_len=2048, stream_interval=2
 ):
-    prompt = inputPrompt
-    l_prompt = len(prompt)
+    prompt = params["prompt"]
+    len_prompt = len(prompt)
+    temperature = float(params.get("temperature", 1.0))
+    repetition_penalty = float(params.get("repetition_penalty", 1.0))
+    top_p = float(params.get("top_p", 1.0))
+    top_k = int(params.get("top_k", -1))  # -1 means disable
+    max_new_tokens = int(params.get("max_new_tokens", 256))
+    stop_str = params.get("stop", None)
+    echo = bool(params.get("echo", True))
+    stop_token_ids = params.get("stop_token_ids", None) or []
+    stop_token_ids.append(tokenizer.eos_token_id)
 
-    if debug:
-        print("Prompt:\n\n", prompt, "\n\n")
+    logits_processor = prepare_logits_processor(
+        temperature, repetition_penalty, top_p, top_k
+    )
 
-    if device == "cpu-gptq":
-        input_ids = tokenizer(prompt, return_tensors="pt").input_ids
-    elif device == "cuda":
-        input_ids = tokenizer(prompt).input_ids
-    else:
-        input_ids = tokenizer(prompt).input_ids
-
+    input_ids = tokenizer(prompt).input_ids
+    input_echo_len = len(input_ids)
     output_ids = list(input_ids)
 
-    max_src_len = context_len - maxNewTokens - 8
+    if model.config.is_encoder_decoder:
+        max_src_len = context_len
+    else:
+        max_src_len = context_len - max_new_tokens - 8
+
     input_ids = input_ids[-max_src_len:]
 
-    # print("input_ids", input_ids)
+    if model.config.is_encoder_decoder:
+        encoder_output = model.encoder(
+            input_ids=torch.as_tensor([input_ids], device=device)
+        )[0]
+        start_ids = torch.as_tensor(
+            [[model.generation_config.decoder_start_token_id]],
+            dtype=torch.int64,
+            device=device,
+        )
 
-    for i in range(maxNewTokens):
-        if debug:
-            print("Modelling a token...")
+    for i in range(max_new_tokens):
         if i == 0:
-            out = model(
-                input_ids=tokensByDevice(device, input_ids, True, debug, debug),
-                use_cache=True,
-            )
-            if debug:
-                print("setting logits...")
-            logits = out.logits
-            if debug:
-                print("setting past key values...")
+            if model.config.is_encoder_decoder:
+                out = model.decoder(
+                    input_ids=start_ids,
+                    encoder_hidden_states=encoder_output,
+                    use_cache=True,
+                )
+                logits = model.lm_head(out[0])
+            else:
+                out = model(torch.as_tensor([input_ids], device=device), use_cache=True)
+                logits = out.logits
             past_key_values = out.past_key_values
         else:
-            if debug:
-                print("setting attention mask...")
-            if device == "cuda":
-                attention_mask = torch.ones(
-                    1, past_key_values[0][0].shape[-2] + 1, device="cuda"
+            if model.config.is_encoder_decoder:
+                out = model.decoder(
+                    input_ids=torch.as_tensor([[token]], device=device),
+                    encoder_hidden_states=encoder_output,
+                    use_cache=True,
+                    past_key_values=past_key_values,
                 )
+
+                logits = model.lm_head(out[0])
             else:
-                attention_mask = torch.ones(1, past_key_values[0][0].shape[-2] + 1)
-            out = model(
-                input_ids=tokensByDevice(device, token, False, debug, debug),
-                use_cache=True,
-                attention_mask=attention_mask,
-                past_key_values=past_key_values,
-            )
-            if debug:
-                print("setting logits...")
-            logits = out.logits
-            if debug:
-                print("setting past key values...")
+                out = model(
+                    input_ids=torch.as_tensor([[token]], device=device),
+                    use_cache=True,
+                    past_key_values=past_key_values,
+                )
+                logits = out.logits
             past_key_values = out.past_key_values
 
-        if debug:
-            print("Finished inferencing a token")
-
-        last_token_logits = logits[0][-1]
+        if logits_processor:
+            if repetition_penalty > 1.0:
+                tmp_output_ids = torch.as_tensor([output_ids], device=logits.device)
+            else:
+                tmp_output_ids = None
+            last_token_logits = logits_processor(tmp_output_ids, logits[:, -1, :])[0]
+        else:
+            last_token_logits = logits[0, -1, :]
 
         if device == "mps":
             # Switch to CPU by avoiding some bugs in mps backend.
             last_token_logits = last_token_logits.float().to("cpu")
 
-        if temperature < 1e-4:
-            print("Temperature was zero, ignoring.")
+        if temperature < 1e-5 or top_p < 1e-8:  # greedy
             token = int(torch.argmax(last_token_logits))
         else:
-            probs = torch.softmax(last_token_logits / temperature, dim=-1)
+            probs = torch.softmax(last_token_logits, dim=-1)
             token = int(torch.multinomial(probs, num_samples=1))
 
         output_ids.append(token)
 
-        if torch.is_tensor(output_ids[0]):
-            output_idsPatched = [*output_ids[0].tolist(), *output_ids[1:]]
-            if debug:
-                print(
-                    "Tokens were tensor patched for GPTQ... Tokens:", output_idsPatched
-                )
-        elif type(output_ids[0]) is list:
-            output_idsPatched = [*output_ids[0], *output_ids[1:]]
-            if debug:
-                print("Tokens were patched... Tokens:", output_idsPatched)
-        else:
-            if debug:
-                print("Tokens werent patched... Tokens:", output_ids)
-            output_idsPatched = output_ids
-
-        if token == tokenizer.eos_token_id:
-            if debug:
-                print("Stopped generating because tokenizer found EOS token id:", token)
+        if token in stop_token_ids:
             stopped = True
         else:
             stopped = False
 
-        if i % stream_interval == 0 or i == maxNewTokens - 1 or stopped:
-            output = tokenizer.decode(output_idsPatched, skip_special_tokens=True)
-            pos = output.rfind(separator, l_prompt)
-            if pos != -1:
-                if debug:
-                    print("Stopped generating because output contained '",separator,"'")
-                output = output[:pos]
-                stopped = True
+        if i % stream_interval == 0 or i == max_new_tokens - 1 or stopped:
+            if echo:
+                tmp_output_ids = output_ids
+                rfind_start = len_prompt
+            else:
+                tmp_output_ids = output_ids[input_echo_len:]
+                rfind_start = 0
+
+            output = tokenizer.decode(
+                tmp_output_ids,
+                skip_special_tokens=True,
+                spaces_between_special_tokens=False,
+            )
+            if stop_str:
+                pos = output.rfind(stop_str, rfind_start)
+                if pos != -1:
+                    output = output[:pos]
+                    stopped = True
             yield output
 
         if stopped:
             break
 
-    del past_key_values
+    del past_key_values, out
+    gc.collect()
+    torch.cuda.empty_cache()

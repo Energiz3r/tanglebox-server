@@ -113,7 +113,7 @@ class LanguageModel:
             print("Configuring for CUDA acceleration", vram_gb, "GB of vram", num_gpus, "GPUs")
             num_gpus = int(num_gpus)
             kwargs = {
-                "torch_dtype": torch.half,
+                "torch_dtype": torch.float16,
                 "low_cpu_mem_usage": True,
                 "device_map": "auto",
                 "max_memory": {i: str(vram_gb) + "GiB" for i in range(num_gpus)},

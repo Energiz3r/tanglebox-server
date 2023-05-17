@@ -13,7 +13,7 @@ def inference(
     device,
     debug,
     shouldStream,
-):
+):  
     if debug:
         print(
             "Inferencing with temp",
@@ -51,11 +51,10 @@ def inference(
                 fullNewToken = unsentToken + thisToken
                 unsentToken = ""
                 if shouldStream:
-                    yield  fullNewToken
+                    yield fullNewToken
             else:
                 unsentToken += thisToken
                 #print('!!'+thisToken+"%")
-        print(thisResponse)
         if not shouldStream:
             yield thisResponse
 
@@ -107,6 +106,38 @@ def inference(
     if debug:
         print("\n", {"prompt": inputPrompt, "outputs": modelOutput}, "\n")
 
+def apiInference(
+        languageModel,
+        conversation,
+        temperature,
+        maxNewTokens,
+        device,
+        debug,
+        shouldStream,
+):
+    inputPrompt = conversation.get_prompt()
+    #outputPrompt = conversation.getPromptForOutput()
+    #separator = conversation.sep
+    fullReply = ""
+    response = inference(
+        languageModel.model,
+        languageModel.tokenizer,
+        inputPrompt,
+        #outputPrompt,
+        temperature,
+        maxNewTokens,
+        #separator,
+        device,
+        debug,
+        shouldStream,
+    )
+    for chunk in response:
+        print(chunk)
+        fullReply += chunk
+        yield chunk
+    print("To API User:", fullReply)
+
+
 def websocketInference(
     inputString,
     websocket,
@@ -135,20 +166,20 @@ def websocketInference(
         print("Preparing conversation...")
     conversation.append_message(conversation.roles[0], inp)
     conversation.append_message(conversation.roles[1], None)
-    inputPrompt = conversation.getPromptForModel()
-    outputPrompt = conversation.getPromptForOutput()
-    separator = conversation.sep
-    if conversation.sep_style == SeparatorStyle.TWO:
-        separator = conversation.sep2      
+    inputPrompt = conversation.get_prompt()
+    # outputPrompt = conversation.getPromptForOutput()
+    # separator = conversation.sep
+    # if conversation.sep_style == SeparatorStyle.TWO:
+    #     separator = conversation.sep2      
     
     result = inference(
         model,
         tokenizer,
         inputPrompt,
-        outputPrompt,
+        #outputPrompt,
         modelSettings.temperature,
         modelSettings.maxNewTokens,
-        separator,
+        #separator,
         device,
         debug,
         modelSettings.shouldStream,
@@ -157,4 +188,4 @@ def websocketInference(
     for chunk in result:
         websocket.send(chunk)
         conversation.messages[-1][-1] += chunk
-    print("To", user + ":", conversation.messages[-1])
+    print("To", user + ":", " ".join(conversation.messages[-1]))
