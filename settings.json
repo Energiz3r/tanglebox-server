@@ -1,17 +1,17 @@
 {
-    "conversationTemplate": "vicky",
+    "conversationTemplate": "vicky2",
     "device": "cuda",
     "enableApi": true,
     "enableModelDebugOutput": false,
-    "enableWebLogOutput": false,
+    "enableWebLogOutput": true,
     "isApiTokensRequired": false,
     "maintenanceMode": false,
-    "maxNewTokens": 512,
-    "modelName": "D:/AI/models/vicuna-7b-v11",
-    "numberOfGpus": 1,
+    "maxNewTokens": 2000,
+    "modelName": "D:/AI/models/vicuna-13b-v11",
+    "numberOfGpus": 2,
     "port": 8080,
     "temperature": 0.7,
     "use8BitCompression": false,
-    "useSsl": false,
-    "vRamGb": 16
+    "useSsl": true,
+    "vRamGb": 24
 }

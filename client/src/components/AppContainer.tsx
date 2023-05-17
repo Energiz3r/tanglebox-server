@@ -14,6 +14,11 @@ import { Conversation } from "./Conversation/Conversation";
 import { useConversation } from "../hooks/useConversation";
 import { DarkThemeToggle } from "@energiz3r/component-library/src/components/DarkThemeToggle/DarkThemeToggle";
 
+import {
+  getLocalStorageBooleanValue,
+  setLocalStorageBooleanValue,
+} from "../utils/localStorageBooleans";
+
 import { ReactComponent as SvgCoffee } from "@energiz3r/component-library/src/Icons/regular/coffee.svg";
 import logoUrl from "../../assets/logo.png";
 import discordLogo from "../../assets/discord-white.png";
@@ -21,16 +26,14 @@ import githubLogo from "../../assets/github-mark.png";
 
 export const AppContainer = () => {
   const [isMenuVisible, setIsMenuVisible] = useState(false);
-  const shouldStreamResponsesDefault =
-    (localStorage.getItem("shouldStreamResponses") ?? "true") === "true"
-      ? true
-      : false;
   const [shouldStreamResponses, setShouldStreamResponses] = useState(
-    shouldStreamResponsesDefault,
+    getLocalStorageBooleanValue("shouldStreamResponses"),
+  );
+  const [shouldUseWebsockets, setShouldUseWebsockets] = useState(
+    getLocalStorageBooleanValue("shouldUseWebsockets"),
   );
 
   const {
-    socket,
     isConnecting,
     isAwaitingResponse,
     modelName,
@@ -38,12 +41,11 @@ export const AppContainer = () => {
     temperature,
     maxTokens,
     conversation,
-    changeMaxTokens,
-    changeTemperature,
-    changeStreaming,
+    setMaxTokens,
+    setTemperature,
     sendMessage,
     discardConversation,
-  } = useConversation({ shouldStreamResponses });
+  } = useConversation({ shouldStreamResponses, shouldUseWebsockets });
 
   const handleMenuClick = () => {
     setIsMenuVisible(!isMenuVisible);
@@ -51,17 +53,15 @@ export const AppContainer = () => {
 
   const handleToggleStreaming = () => {
     const shouldStream = !shouldStreamResponses;
-    localStorage.setItem(
-      "shouldStreamResponses",
-      shouldStream ? "true" : "false",
-    );
-    changeStreaming(shouldStream);
+    setLocalStorageBooleanValue("shouldStreamResponses", shouldStream);
     setShouldStreamResponses(shouldStream);
   };
 
-  useEffect(() => {
-    if (!isConnecting) changeStreaming(shouldStreamResponses);
-  }, [isConnecting]);
+  const handleToggleWebsockets = () => {
+    const shouldWebsocket = !shouldUseWebsockets;
+    setLocalStorageBooleanValue("shouldUseWebsockets", shouldWebsocket);
+    setShouldUseWebsockets(shouldWebsocket);
+  };
 
   return (
     <>
@@ -107,6 +107,16 @@ export const AppContainer = () => {
         ) : null}
 
         <MenuItem>
+          <p>Use websockets</p>
+          <div className={styles.toggleBackground}>
+            <DarkThemeToggle
+              defaultMode={shouldUseWebsockets ? "dark" : "light"}
+              onClick={handleToggleWebsockets}
+            />
+          </div>
+        </MenuItem>
+
+        <MenuItem>
           <p>Stream responses {shouldStreamResponses}</p>
           <div className={styles.toggleBackground}>
             <DarkThemeToggle
@@ -119,23 +129,23 @@ export const AppContainer = () => {
         <MenuItem>
           <p>Temperature</p>
           <FloatInput
-            onChange={changeTemperature}
+            onChange={setTemperature}
             defaultValue={temperature}
             maxValue={100}
             fullWidth
             step={0.1}
-            enabled={Boolean(socket)}
+            enabled={!isConnecting}
           />
         </MenuItem>
 
         <MenuItem>
           <p>Max Tokens</p>
           <IntegerInput
-            onChange={changeMaxTokens}
+            onChange={setMaxTokens}
             defaultValue={maxTokens}
             maxValue={10000}
             fullWidth
-            enabled={Boolean(socket)}
+            enabled={!isConnecting}
           />
         </MenuItem>
 

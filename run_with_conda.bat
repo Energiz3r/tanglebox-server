@@ -1,6 +1,6 @@
 @echo off
 set CONDA_PATH="%UserProfile%\miniconda3"
-set CONDA_ENV=tanglebox2
+set CONDA_ENV=tanglebox
 set SCRIPT_PATH=server\main.py
 :start
 call %CONDA_PATH%\Scripts\activate %CONDA_ENV%
