@@ -1,4 +1,5 @@
 __pycache__/
+endpoints.json
 web_settings.json
 model_settings.json
 conversations*.csvc

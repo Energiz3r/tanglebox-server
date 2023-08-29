@@ -2,7 +2,9 @@ from utils import printDictAsTable
 import os
 import json
 
-def loadWebSettings(shouldOutputSettings = False):
+
+def loadWebSettings(shouldOutputSettings=False):
+    webSettingsFilepath = "web_settings.json"
     defaultSettings = {
         "defaultTemperature": 0.7,
         "defaultMaxTokens": 2060,
@@ -14,11 +16,11 @@ def loadWebSettings(shouldOutputSettings = False):
         "maintenanceModeMessage": "Down for maintenance",
     }
     didExist = True
-    if not os.path.exists('web_settings.json'):
+    if not os.path.exists(webSettingsFilepath):
         didExist = False
-        with open('web_settings.json', 'w') as file:
+        with open(webSettingsFilepath, "w") as file:
             json.dump(defaultSettings, file, indent=4, sort_keys=True)
-    with open('web_settings.json', 'r') as file:
+    with open(webSettingsFilepath, "r") as file:
         settings = json.load(file)
     wasSettingMissingFromFile = False
     for key in defaultSettings:
@@ -27,9 +29,15 @@ def loadWebSettings(shouldOutputSettings = False):
             print(f"Missing key: {key}")
             settings[key] = defaultSettings[key]
     if wasSettingMissingFromFile:
-        with open('web_settings.json', 'w') as file:
+        with open(webSettingsFilepath, "w") as file:
             json.dump(settings, file, indent=4, sort_keys=True)
-            print("Updated missing settings in web_settings.json...")
+            print(f"Updated missing settings in {webSettingsFilepath}...")
     if shouldOutputSettings:
-        printDictAsTable(settings, "Loaded config from web_settings.json:" if didExist else "Created config file settings.json:", ["Setting", "Value"])
+        printDictAsTable(
+            settings,
+            f"Loaded config from {webSettingsFilepath}:"
+            if didExist
+            else f"Created config file {webSettingsFilepath}:",
+            ["Setting", "Value"],
+        )
     return settings

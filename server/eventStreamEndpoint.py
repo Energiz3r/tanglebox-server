@@ -4,27 +4,31 @@ from settings import loadWebSettings
 from utils import createChunk, checkApiToken
 import uuid
 
-def eventStreamRouteHandler(app, url, server, port, endpoint, tokenRuleApplies):
-        
+
+def eventStreamRouteHandler(app, type, name, serverAddress, port, tokenRuleApplies):
     def eventStreamRoute():
         settings = loadWebSettings()
-        if settings['maintenanceMode']:
-            return Response(createChunk('Web server is in maintenance mode, please try again later 🫠'), content_type="application/json")
+        if settings["maintenanceMode"]:
+            return Response(
+                createChunk(settings["maintenanceModeMessage"]),
+                content_type="application/json",
+            )
         data = request.get_json()
-        if tokenRuleApplies and settings['shouldRequireToken']:
-            if not 'token' in data:
+        if tokenRuleApplies and settings["shouldRequireToken"]:
+            if not "token" in data:
                 abort(400, "Missing value 'token'")
-            if not checkApiToken(data['token']):
+            if not checkApiToken(data["token"]):
                 abort(400, "Invalid token supplied")
-        if not 'prompt' in data:
+        if not "prompt" in data:
             abort(400, "Prompt missing from request")
-        if endpoint:
-            url = f"http://{server}:{port}{endpoint}"
+        if type == "llamacpp":
+            url = f"http://{serverAddress}:{port}/completion"
         else:
-            url = f"http://{server}:{port}"
-        if data['prompt']:
+            url = f"http://{serverAddress}:{port}"
+        if data["prompt"]:
             ip = request.remote_addr
-            print(f'({url}) From ({ip}):', data['prompt'])
+            print(f"({url}) From ({ip}):", data["prompt"])
+
         def generate():
             try:
                 req = requests.post(url, json=data, stream=True)
@@ -34,10 +38,13 @@ def eventStreamRouteHandler(app, url, server, port, endpoint, tokenRuleApplies):
             except request.exceptions.RequestException as e:
                 app.logger.error("Error reading from {0}: {1}".format(url, e))
                 yield str(e)
-        if data['stream']:
-            return Response(stream_with_context(generate()), content_type="text/event-stream")
+
+        if data["stream"]:
+            return Response(
+                stream_with_context(generate()), content_type="text/event-stream"
+            )
         else:
             return Response(generate(), content_type="application/json")
-    
+
     eventStreamRoute.__name__ = str(uuid.uuid4())
-    app.route(url, methods=['POST'])(eventStreamRoute)
+    app.route(f"/{name}", methods=["POST"])(eventStreamRoute)
