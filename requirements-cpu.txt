@@ -1,9 +1,8 @@
 flask==2.2.3
 flask_sock==0.6.0
-transformers-4.28.0-py3-none-any.whl
-sentencepiece==0.1.97
-accelerate==0.18.0
+transformers==4.32.1
+sentencepiece==0.1.99
+accelerate==0.20.3
 cryptography==40.0.1
 protobuf==3.20
-torch==2.0.0
-pyllamacpp==1.0.6
+torch==2.0.1

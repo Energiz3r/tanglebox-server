@@ -1,8 +1,13 @@
 {
-  "python.formatting.provider": "black",
+  "python.formatting.provider": "none",
   "workbench.colorCustomizations": {
     "activityBar.background": "#451b4b",
     "titleBar.activeBackground": "#8d018d",
     "statusBar.background": "#ff00f2"
+  },
+  "files.autoSave": "onWindowChange",
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
   }
 }

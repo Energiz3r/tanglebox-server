@@ -9,20 +9,19 @@ vicuna-7b-v1.1 fits in 8GB VRAM on a 3000 or newer nvidia card, and vicuna-13b-v
 ### Back End
 
 - [REST API endpoint](#REST-Endpoint)
-- Pure websocket endpoint
 - Web server for UI
-- Model inferencing using either pytorch / HF transformers or pyllama.cpp
+- Model inferencing using either HF transformers or pyllama.cpp
 - On the fly 8bit quantization to fit large models in minimal VRAM
 
 ### Front End
 
 - Markdown support
 - Reponsive UI
-- Response streaming using websockets
+- Conversation streaming using text/event-stream
 
 See [development](#development) for future features or way to contribute
 
-Tested on windows 10, python-3.8.0
+Tested on windows 10, python-3.11.0
 
 ## Installation
 
@@ -30,14 +29,18 @@ Note: Selecting the CUDA option still allows for CPU-based inferencing
 
 ### With conda, Windows
 
-- Run `install_win64_with_conda.bat`
+- Run `install_win64_with_conda_server.bat` to set up the web UI
+- Run `install_win64_with_conda_model.bat` to set up an HF Transformers model instance, or
+- Download the latest release of Llama.cpp and configure a server
 
-This script will install miniconda3 for you if not already installed
+The batch scripts will install miniconda3 for you if not already installed
 
 ### Without conda, Windows
 
-- Install `python-3.8.0` and VS2019 as above, if needed
+- Install `python-3.11.0` and VS2019 as above, if needed
 - Make sure pip is up to date: `python -m pip install --upgrade pip`
+- For server:
+  - use `pip install -r requirements-server.txt`
 - With CUDA acceleration:
   - use `pip install -r requirements-cuda.txt`
 - CPU only:
@@ -49,10 +52,10 @@ I've included the .whl for HuggingFace transformers for 64-bit Windows to greatl
 
 - With conda
   - Install miniconda3
-  - In a command line: `conda create -n tanglebox python=3.8.0`
-  - Then: `conda activate tanglebox`
+  - In a command line: `conda create -n tanglebox-model python=3.11.0`
+  - Then: `conda activate tanglebox-model`
 - Without conda
-  - Install python 3.8.0
+  - Install python 3.11.0
 - Make sure pip is up to date: `python -m pip install --upgrade pip`
 - To install transformers `pip install -r requirements-transformers.txt`
 - With CUDA acceleration:
@@ -60,41 +63,55 @@ I've included the .whl for HuggingFace transformers for 64-bit Windows to greatl
 - CPU only:
   - use `pip install -r requirements-cpu`
 
+- For the server
+  - In a command line: `conda create -n tanglebox-server python=3.11.0`
+  - Then: `conda activate tanglebox-server`
+  - Then: `pip install -r requirements-server`
+
 [troubleshooting](#troubleshooting)
 
 ## Usage
 
-On windows, use: `run_with_conda.bat` or `run_native.bat`
+On windows, use: `run_server_conda.bat` and/or `run_model_conda.bat`
 
-Otherwise, just execute: `python main.py`
+Otherwise, just execute: `python server/main.py` and `python model/main.py`
 
-A `settings.json` file will be generated:
+A `web_settings.json` file will be generated:
 
 ```json
 {
-  "conversationTemplate": "vicky", // see conversationTemplates.py
-  "device": "cuda", // "cuda" | "cpu" | "cpu-ggml" | "mps"
-  "enableApi": true, // enables REST API
-  "enableModelDebugOutput": false,
-  "enableWebLogOutput": false,
-  "isApiTokensRequired": false, // requires API users to have a token
-  "maintenanceMode": false,
-  "maxNewTokens": 512,
-  "modelName": "models/vicuna-13b-v11", // see below
-  "numberOfGpus": 1,
-  "port": 8080,
-  "temperature": 0.7,
-  "use8BitCompression": true, // applies to CUDA device only
-  "useSsl": false, // enable SSL connections
-  "vRamGb": 13 // how much VRAM you have / wish to allow
+    "defaultMaxTokens": 2060,
+    "defaultTemperature": 0.7,
+    "maintenanceMode": true,
+    "maintenanceModeMessage": "Down for maintenance",
+    "port": 8080,
+    "shouldRequireToken": false, // requires API users to have a token
+    "useSsl": true,
+    "webDebugOutput": true
 }
 ```
 
-- For ggml models, the `modelName` value should be the path to the **file**, eg `python main.py --model-path E:\models\ggml-vicuna-7b-1.1\ggml-vicuna-7b-1.1-q4_0.bin --cpu-ggml`
+and a `model_settings.json`:
 
-- For everything else, the value should be the path to the **folder** containing the model.
+```json
 
-If the default settings.json needed modification, restart the process, then open your browser and navigate to `localhost:8080`
+{
+  "port": 64223,
+  "maintenanceMode": false,
+  "maintenanceModeMessage": "This model is down for maintenance 🫠",
+  "enableModelDebugOutput": false,
+  "modelName": "models/vicuna-7b-v11",
+  "modelAlias": "vicuna-7b",
+  "device": "cuda", // "cuda" | "cpu" | "mps"
+  "numberOfGpus": 1,
+  "use8BitCompression": false, // applies to CUDA device only
+  "vRamGb": 13, // how much VRAM you have / wish to allow
+}
+```
+
+- The value of "modelName" should be the path to the **folder** containing the model.
+
+The settings files are generated upon starting the server
 
 ## Development
 
@@ -102,68 +119,45 @@ Use `cd client` and `npm install` to obtain dependencies, then `npm run dev` or 
 
 I'm primarily a front-end dev so contributions of any kind to back-end are greatly appreciated and welcomed. I would love to add support for more models, but know very little really about the scene. Right now I'm working on UI elements for image generation and other features - basically copying what gradio can do, but looking nice at the same time.
 
-## Websockets
-
-`main.py` should be fairly readable about what the different websocket messages do, but in summary, all WS communication is via the same WS, there's no other routes involved. Special tokens are used as follows:
-
-```
-All tokens are sent in the format <token><value> eg. "#-set-temperature-#0.7", or just <token> where no value is required
-
-Source - Client
-"#-set-temp-#" - float
-"#-set-max-tokens-#" - int
-"#-set-streaming-#" - string "true" | "false"
-"#-get-config-#"
-"#-delete-#"
-"#-ping-#"
-
-Source - Server
-"#-set-#" - acknowledgement to any client "#-set-xxx-#" messages. ignored on front end
-"#-delete-#" - acknowledgment conversation was deleted
-"#-model-name-#" - string
-"#-device-name-#" - string
-"#-max-new-tokens-#" - int
-"#-temperature-#" - float
-"#a-c-k#" - acknowledgement to prompt input (tells front end to wait for a reply)
-"#f-i-n#" - follows completion of the inferencing, even if there was an error (tells front end model has finished output)
-"#-pong-#"
-```
-
-This should probably become a separate route for control messages, but the need has yet to arise for me and this prevents me having to put websocket instances onto a global object (or somesuch) to maintain context of the client session - KISS
-
 ## REST Endpoint
 
-Send request to `localhost:8080/conversation`. POST with json or GET are both supported, but consider using POST if submitting long conversation history
+Send request to `localhost:8080/conversation`. POST with json body is supported
+
+Note that the endpoints are configured in server/main.py - the above is an example. Configure as needed
 
 ### params:
 
-    "token" string - required (if enabled)
-    "userPrompt" string - required
-    "systemPrompt" string - optional
-    "conversationHistory" valid JSON array of arrays, see below - optional
-    "temperature" float - optional
-    "maxNewTokens" int - optional
-    "shouldStreamResponse" string "true" or "false" - optional
+    prompt: "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER: hi there \nASSISTANT:"
+    n_predict: 2048
+    temperature: 0.7
+    stream: true
 
-If supplying a value for `conversationHistory`, the JSON structure should be an array of arrays containing role and message, eg. `[["Human","how do magnets work?"],["Assistant","They just do."]]`
+The above params are taken from llama.cpp's server and can be used interchangeably, however, note that other params used by llama.cpp are ignored by this model loader but can still be sent to the endpoint and will be passed on if it is a llama.cpp server. For reference, this is the full set of llama.cpp params:
 
-Valid role values are string literals `"Human"` or `"AI"`. The actual role strings used by the model is dependent on the conversation template applied in settings.json. This way the user of the API is not concerned with any specifics of the model config in use by the server.
-
-## Conversation Templates
-
-Conversation templates exist in `conversationTemplates.py`. You can create new ones or customise what's there. Note the 'outputSeparator' - this was added because some models return a different character in place of the stop token from their output, while others don't. Eventually I'll code around this rather than requiring the user to specify
+    frequency_penalty: 0
+    mirostat: 0
+    mirostat_eta: 0.1
+    mirostat_tau: 5
+    n_predict: 2048
+    presence_penalty: 0
+    prompt: "Hi there\n\nHuman: \nAssistant:"
+    repeat_last_n: 256
+    repeat_penalty: 1.18
+    stop: ["</s>", "Assistant:", "Human:"]
+    stream: true
+    temperature: 0.7
+    tfs_z: 1
+    top_k: 40
+    top_p: 0.5
+    typical_p: 1
 
 ## Troubleshooting
-
-For vicuna v1.1, ensure you use the correct templates for the stop token to work (eos should be </s>, for vicuna v0 it should be ###).
-
-If using SSL (https) and stuck on 'connecting', check it's enabled in settings.json.
 
 If you're on a 32-bit version of windows, or for whatever reason you see errors related to 'wheel build failed' or a .h file missing for sentencepiece, that means the included transformers .whl doesn't work for you, and you'll need to install VS2019 or an equivalent c++ compiler. See below.
 
 I've not tested this repo on Linux or Mac, nor have I used it inside a venv. It works great in conda so I recommend that. Raise an issue if it doesn't work for you.
 
-Double check you are using the right models with the right devices. For CUDA you should have pytorch_model .bin or .pth files, you can't run ggml quantized models on GPU. I've found I need 16GB of VRAM to run the vicuna-7b model on CUDA. Using 8bit compression means vicuna-13b-v11 now fits in 16GB VRAM, and 7b 1.1 in under 8GB
+Double check you are using the right models with the right devices. For CUDA you should have pytorch_model .bin or .pth files. I've found I need 16GB of VRAM to run the vicuna-7b model on CUDA. Using 8bit compression means vicuna-13b-v11 now fits in 16GB VRAM, and 7b 1.1 in under 8GB
 
 ## Model links
 

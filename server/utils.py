@@ -1,32 +1,4 @@
-import torch
 import json
-
-def tokensByDevice(device, token, isBase, debug=False, showTokens=False):
-    if debug and showTokens:
-        print(
-            f'{"Tokenising prompt" if isBase else "Inferencing"} using ({device})... Tokens:',
-            token,
-        )
-    elif debug:
-        print(f'{"Tokenising prompt" if isBase else "Inferencing"} using ({device})...')
-    if device == "cuda":
-        if isBase:
-            result = torch.as_tensor([token]).cuda()
-        else:
-            result = torch.as_tensor([[token]], device="cuda")
-    elif device == "cpu-gptq":
-        if isBase:
-            result = token
-        else:
-            result = torch.as_tensor([[token]])
-    elif device == "cpu":
-        if isBase:
-            result = torch.as_tensor([token])
-        else:
-            result = torch.as_tensor([[token]])
-    if debug:
-        print("tokenised result", result)
-    return result
 
 class bcolors:
     HEADER = '\033[95m'
@@ -62,27 +34,32 @@ def printDictAsTable(dict, title="Table output:", headers = ["Key", "Value"]):
     table = bc + "┌" + border + "┐\n" + vs + tc + (" " + title).ljust(tableWidth) + bc + vs + "\n" + vs + spacer + vs + "\n" + tableHeaders + table + "└" + border + "┘" + bcolors.ENDC
     print(table)
 
+def createChunk(content: str, stop: bool = False):
+    return bytes(f'data: {{"content":{json.dumps(content)},"stop":"{stop}"}}\n\n', 'utf-8')
 
-def processConvo(convo, humanRole, aiRole):
+def checkApiToken(token):
     try:
-        convHistoryList = json.loads(convo)
-    except json.JSONDecodeError:
-        return "Invalid conversationHistory JSON"
+        with open("apiTokens.txt", "r") as file:
+            tokensList = file.read().splitlines()
+    except FileNotFoundError:
+        print("API tokens file not found")
+        tokensList = []
+    for tokenLine in tokensList:
+        pair = tokenLine.split(':')
+        if pair[1] == 'TOKEN':
+            continue
+        if pair[1] == token:
+            return True
+    return False
 
-    if not isinstance(convHistoryList, list):
-        return 'conversationHistory JSON structure must be an array of arrays, eg. [["Human","How do magnets work?"],["AI","They just do"]]'
-
-    convHistoryPyList = []
-
-    for item in convHistoryList:
-        if not isinstance(item, list) or len(item) != 2:
-            return 'Each conversationHistory subarray must contain exactly 2 values - role and message, eg. [["Human","How do magnets work?"],["AI","They just do"]]'
-
-        role, message = item
-        if role not in ('Human', 'AI'):
-            return "conversationHistory roles must only be either 'Human' or 'AI'."
-
-        role = humanRole if role == 'Human' else aiRole
-        convHistoryPyList.append((role, message))
-
-    return convHistoryPyList
+    # @app.route("/test", methods=['POST'])
+    # def testRoute():
+    #     def generate_test_response():
+    #         start_time = time.time()
+    #         while time.time() - start_time < 12:
+    #             if time.time() - start_time > 10:
+    #                 yield bytes('data: {"content":"finished","stop":true}\n\n', 'utf-8')    
+    #             else:
+    #                 yield bytes('data: {"content":"hello world","stop":false}\n\n', 'utf-8')
+    #             time.sleep(2)
+    #     return Response(stream_with_context(generate_test_response()), content_type="text/event-stream")
