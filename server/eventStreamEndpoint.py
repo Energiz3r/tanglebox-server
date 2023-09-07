@@ -3,7 +3,6 @@ import requests
 from settings import loadWebSettings
 from utils import createChunk, parseChunkContent, checkApiToken
 import uuid
-import json
 
 
 def eventStreamRouteHandler(
