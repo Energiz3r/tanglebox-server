@@ -7,6 +7,26 @@ def createChunk(content: str, stop: bool = False):
     )
 
 
+def parseChunkContent(chunk):
+    chunkStr = chunk.decode("utf-8")
+    chunkSplit = chunkStr.split("data:")
+    chunkContent = ""
+    for eventObjectJson in chunkSplit:
+        if len(eventObjectJson):
+            eventObjectJsonClean = eventObjectJson.strip()
+            while (
+                eventObjectJsonClean[-2:] == "\\n"
+            ):  # remove trailing escaped \n from string eg {"content":"stuff"}\\n\\n
+                eventObjectJsonClean = eventObjectJsonClean[:-2]
+            try:
+                eventObject = json.loads(eventObjectJsonClean)
+                if "content" in eventObject:
+                    chunkContent += str(eventObject["content"])
+            except json.decoder.JSONDecodeError:
+                print(f"Json decode error parsing chunk: '{chunk}'")
+    return chunkContent
+
+
 def checkApiToken(token):
     try:
         with open("apiTokens.txt", "r") as file:

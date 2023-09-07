@@ -8,7 +8,10 @@ def loadEndpoints(shouldOutputSettings=False):
     default_data = [
         {
             "type": "transformers",
-            "name": "vicky7",
+            "urlSuffix": "vicky7",
+            "label": "vicky-7b",
+            "isEnabled": True,
+            "deviceName": "cuda",
             "serverAddress": "127.0.0.1",
             "port": "64223",
             "requiresAccessToken": False,
@@ -21,7 +24,10 @@ def loadEndpoints(shouldOutputSettings=False):
         },
         {
             "type": "llamacpp",
-            "name": "vicky65",
+            "urlSuffix": "vicky65",
+            "label": "vicky-65b-experimental",
+            "isEnabled": True,
+            "deviceName": "cpu",
             "serverAddress": "192.168.1.10",
             "port": "64222",
             "requiresAccessToken": False,
@@ -48,7 +54,10 @@ def loadEndpoints(shouldOutputSettings=False):
 
         required_properties = {
             "type",
-            "name",
+            "urlSuffix",
+            "label",
+            "isEnabled",
+            "deviceName",
             "serverAddress",
             "port",
             "requiresAccessToken",
@@ -56,6 +65,7 @@ def loadEndpoints(shouldOutputSettings=False):
             "userRole",
             "assistantRole",
             "stopToken",
+            "separator",
             "systemPrompt",
         }
         valid_types = {"llamacpp", "transformers"}
@@ -74,7 +84,7 @@ def loadEndpoints(shouldOutputSettings=False):
         for endpoint in endpointList:
             printDictAsTable(
                 remove_keys_from_dict(endpoint, ["systemPrompt"]),
-                f"Registered endpoint '{endpoint['name']}'",
+                f"Registered endpoint /'{endpoint['urlSuffix']}'",
             )
 
     return endpointList

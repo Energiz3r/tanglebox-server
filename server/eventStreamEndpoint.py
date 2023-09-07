@@ -1,11 +1,14 @@
 from flask import request, Response, stream_with_context, abort
 import requests
 from settings import loadWebSettings
-from utils import createChunk, checkApiToken
+from utils import createChunk, parseChunkContent, checkApiToken
 import uuid
+import json
 
 
-def eventStreamRouteHandler(app, type, name, serverAddress, port, tokenRuleApplies):
+def eventStreamRouteHandler(
+    app, type, urlSuffix, serverAddress, port, tokenRuleApplies
+):
     def eventStreamRoute():
         settings = loadWebSettings()
         if settings["maintenanceMode"]:
@@ -25,26 +28,43 @@ def eventStreamRouteHandler(app, type, name, serverAddress, port, tokenRuleAppli
             url = f"http://{serverAddress}:{port}/completion"
         else:
             url = f"http://{serverAddress}:{port}"
-        if data["prompt"]:
-            ip = request.remote_addr
-            print(f"({url}) From ({ip}):", data["prompt"])
+        shouldStream = "stream" in data and data["stream"]
 
-        def generate():
+        ip = request.remote_addr
+        promptForDisplay = (
+            data["prompt"] if not "promptInputOnly" in data else data["promptInputOnly"]
+        )
+        print(f"({urlSuffix}) From ({ip}):", promptForDisplay)
+
+        def generateProxyStreamingResponse():
+            entireResponse = ""
             try:
                 req = requests.post(url, json=data, stream=True)
                 for chunk in req.iter_content(chunk_size=1024):
+                    if shouldStream:
+                        shutdown_callback = request.environ.get(
+                            "werkzeug.server.shutdown"
+                        )
+                        if shutdown_callback and not chunk:
+                            print("Connection terminated by client")
+                            req.close()
                     if chunk:
+                        entireResponse += parseChunkContent(chunk)
                         yield chunk
             except request.exceptions.RequestException as e:
                 app.logger.error("Error reading from {0}: {1}".format(url, e))
                 yield str(e)
+            print(f"({urlSuffix}) To ({ip}):", entireResponse)
 
-        if data["stream"]:
+        if shouldStream:
             return Response(
-                stream_with_context(generate()), content_type="text/event-stream"
+                stream_with_context(generateProxyStreamingResponse()),
+                content_type="text/event-stream",
             )
         else:
-            return Response(generate(), content_type="application/json")
+            return Response(
+                generateProxyStreamingResponse(), content_type="application/json"
+            )
 
     eventStreamRoute.__name__ = str(uuid.uuid4())
-    app.route(f"/{name}", methods=["POST"])(eventStreamRoute)
+    app.route(f"/{urlSuffix}", methods=["POST"])(eventStreamRoute)
