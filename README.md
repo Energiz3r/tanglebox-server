@@ -2,6 +2,10 @@
 
 A host-it-yourself language model inferencing / chat bot platform.
 
+## Demo
+
+[VickyAI](https://model.tanglebox.ai)
+
 ## Features
 
 vicuna-7b-v1.1 fits in 8GB VRAM on a 3000 or newer nvidia card, and vicuna-13b-v1.1 fits in 16GB!
@@ -61,6 +65,7 @@ I've included the .whl for HuggingFace transformers for 64-bit Windows to greatl
 - With CUDA acceleration:
   - use `pip install -r requirements-cuda.txt`
 - CPU only:
+
   - use `pip install -r requirements-cpu`
 
 - For the server
@@ -80,21 +85,20 @@ A `web_settings.json` file will be generated:
 
 ```json
 {
-    "defaultMaxTokens": 2060,
-    "defaultTemperature": 0.7,
-    "maintenanceMode": true,
-    "maintenanceModeMessage": "Down for maintenance",
-    "port": 8080,
-    "enableTokenRules": false, // enables the feature for endpoints to require a token
-    "useSsl": true,
-    "webDebugOutput": true
+  "defaultMaxTokens": 2060,
+  "defaultTemperature": 0.7,
+  "maintenanceMode": true,
+  "maintenanceModeMessage": "Down for maintenance",
+  "port": 8080,
+  "enableTokenRules": false, // enables the feature for endpoints to require a token
+  "useSsl": true,
+  "webDebugOutput": true
 }
 ```
 
 and a `model_settings.json`:
 
 ```json
-
 {
   "port": 64223,
   "maintenanceMode": false,
@@ -105,7 +109,7 @@ and a `model_settings.json`:
   "device": "cuda", // "cuda" | "cpu" | "mps"
   "numberOfGpus": 1,
   "use8BitCompression": false, // applies to CUDA device only
-  "vRamGb": 13, // how much VRAM you have / wish to allow
+  "vRamGb": 13 // how much VRAM you have / wish to allow
 }
 ```
 
