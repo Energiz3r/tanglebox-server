@@ -12,6 +12,7 @@ def loadEndpoints(shouldOutputSettings=False):
             "label": "vicky-7b",
             "isEnabled": True,
             "deviceName": "cuda",
+            "protocol": "http",
             "serverAddress": "127.0.0.1",
             "port": "64223",
             "requiresAccessToken": False,
@@ -21,6 +22,10 @@ def loadEndpoints(shouldOutputSettings=False):
             "stopToken": "</s>",
             "separator": " ",
             "systemPrompt": "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. ",
+            "motd": "this is the 7B Vicky model running in fast mode",
+            "motdColor": "",
+            "motdHeading": "hi there!",
+            "motdHeadingColor": "#ff3b3b",
         },
         {
             "type": "llamacpp",
@@ -28,6 +33,7 @@ def loadEndpoints(shouldOutputSettings=False):
             "label": "vicky-65b-experimental",
             "isEnabled": True,
             "deviceName": "cpu",
+            "protocol": "http",
             "serverAddress": "192.168.1.10",
             "port": "64222",
             "requiresAccessToken": False,
@@ -37,6 +43,10 @@ def loadEndpoints(shouldOutputSettings=False):
             "stopToken": "</s>",
             "separator": " \n",
             "systemPrompt": "",
+            "motd": "this is the 65B Vicky model running in slow mode",
+            "motdColor": "",
+            "motdHeading": "hi there!",
+            "motdHeadingColor": "#ff3b3b",
         },
     ]
     wasCreated = False
@@ -58,6 +68,7 @@ def loadEndpoints(shouldOutputSettings=False):
             "label",
             "isEnabled",
             "deviceName",
+            "protocol",
             "serverAddress",
             "port",
             "requiresAccessToken",
@@ -67,8 +78,12 @@ def loadEndpoints(shouldOutputSettings=False):
             "stopToken",
             "separator",
             "systemPrompt",
+            "motd",
+            "motdColor",
+            "motdHeading",
+            "motdHeadingColor",
         }
-        valid_types = {"llamacpp", "transformers"}
+        valid_types = {"llamacpp", "transformers", "openai"}
         endpointList = []
 
         for item in data:

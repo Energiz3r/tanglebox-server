@@ -11,9 +11,10 @@ def loadWebSettings(shouldOutputSettings=False):
         "useSsl": False,
         "port": 8080,
         "webDebugOutput": False,
-        "shouldRequireToken": False,
+        "enableTokenRules": False,
         "maintenanceMode": False,
         "maintenanceModeMessage": "Down for maintenance",
+        "adminGoogleId": "",
     }
     didExist = True
     if not os.path.exists(webSettingsFilepath):

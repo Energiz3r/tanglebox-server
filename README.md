@@ -85,7 +85,7 @@ A `web_settings.json` file will be generated:
     "maintenanceMode": true,
     "maintenanceModeMessage": "Down for maintenance",
     "port": 8080,
-    "shouldRequireToken": false, // requires API users to have a token
+    "enableTokenRules": false, // enables the feature for endpoints to require a token
     "useSsl": true,
     "webDebugOutput": true
 }

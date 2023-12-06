@@ -173,6 +173,3 @@ class LanguageModel:
             self.model.to(memory_format=torch.channels_last)
 
         print("Language model initialised.")
-
-    def close(self):
-        self.model.close()

@@ -1,10 +1,12 @@
-from flask import request, Response, stream_with_context, abort
+from flask import request, Response, stream_with_context, abort, current_app
 from runInference import inference
+from settings import loadSettings
 
 
-def transformersRouteHandler(app, url, settings, getLanguageModel):
+def transformersRouteHandler(app, url, getLanguageModel):
     @app.route(url, methods=["POST"])
     def transformersRoute():
+        settings = loadSettings()
         languageModel = getLanguageModel()
         data = request.get_json()
         if not "prompt" in data:
@@ -20,7 +22,8 @@ def transformersRouteHandler(app, url, settings, getLanguageModel):
                 stopTokens = stopArray
             else:
                 abort(400, "Stop tokens invalid")
-        print("stops are:", stopTokens)
+        if settings["enableModelDebugOutput"]:
+            print("stops are:", stopTokens)
         temperature = 0.7 if not "temperature" in data else data["temperature"]
         maxNewTokens = 512 if not "n_predict" in data else data["n_predict"]
         device = settings["device"]
