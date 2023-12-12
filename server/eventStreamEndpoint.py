@@ -5,7 +5,11 @@ from utils import createChunk, parseChunkContent, checkApiToken
 from endpoints import loadEndpoints
 import uuid
 
-bearerToken = "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"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+OPEN_AI_API_KEY = os.getenv('OPEN_AI_API_KEY')
 
 def eventStreamRouteHandler(app, endpoint, urlPrefix):
     def eventStreamRoute():
@@ -15,8 +19,9 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
                 createChunk(settings["maintenanceModeMessage"]),
                 content_type="application/json",
             )
-
+        
         type = endpoint['type']
+        isOpenAi = type == "openai"
         serverAddress = f"{endpoint['protocol']}://{endpoint['serverAddress']}:{endpoint['port']}"
         if type == "openai":
             serverAddress = f"{endpoint['protocol']}://{endpoint['serverAddress']}"
@@ -42,7 +47,7 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
             if not checkApiToken(data["token"]):
                 abort(400, "Invalid token supplied")
 
-        if type == "openai":
+        if isOpenAi:
             if not "messages" in data:
                 abort(400, "Messages array missing from request")
             if not "content" in data["messages"][-1]:
@@ -52,7 +57,6 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
             if not "prompt" in data:
                 abort(400, "Prompt missing from request")
         
-
         shouldStream = "stream" in data and data["stream"]
 
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
@@ -62,7 +66,7 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
             shouldStream = False
             promptForDisplay = ""
             if "messages" in data:
-                if "message" in data["messages"][-1]:
+                if "content" in data["messages"][-1]:
                     promptForDisplay = data["messages"][-1]["content"]
         else:
             promptForDisplay = (
@@ -71,17 +75,17 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
 
         print(f"({endpoint['urlSuffix']}) From ({ip}):", promptForDisplay)
 
-        if type == "openai":
+        if isOpenAi:
             data["model"] = endpoint["label"]
 
         def generateProxyStreamingResponse():
             entireResponse = ""
             try:
-                if type == "openai":
-                    headers = {'Authorization': f'Bearer {bearerToken}'}
+                if isOpenAi:
+                    headers = {'Authorization': f'Bearer {OPEN_AI_API_KEY}'}
                 else:
                     headers = {}
-                req = requests.post(serverAddress, json=data, stream=True, headers=headers)
+                req = requests.post(serverAddress, json=data, stream=True, headers=headers, timeout=500)
                 for chunk in req.iter_content(chunk_size=1024):
                     if shouldStream:
                         shutdown_callback = request.environ.get(
@@ -91,7 +95,7 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
                             print("Connection terminated by client")
                             req.close()
                     if chunk:
-                        entireResponse += parseChunkContent(chunk)
+                        entireResponse += parseChunkContent(chunk, isOpenAi)
                         yield chunk
             except request.exceptions.RequestException as e:
                 app.logger.error("Error reading from {0}: {1}".format(serverAddress, e))

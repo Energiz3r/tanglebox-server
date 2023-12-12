@@ -15,14 +15,14 @@ from utils import remove_keys_from_dict
 from oauthlib.oauth2 import WebApplicationClient
 import requests
 import json
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-APP_SECRET_KEY = "lkjsahfoi37q4yfoi7uey408rt7uhszi7fty98w7gyrwhatthefuckever"
-GOOGLE_CLIENT_ID = (
-    "1040568431424-odn3sr7lr139kqe73hbr70e36nh2u3h6.apps.googleusercontent.com"
-)
-GOOGLE_CLIENT_SECRET = "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"
-GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
-
+GOOGLE_DISCOVERY_URL = os.getenv('GOOGLE_DISCOVERY_URL')
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+GOOGLE_APP_SECRET_KEY = os.getenv('GOOGLE_APP_SECRET_KEY')
 
 def get_google_provider_cfg():
     return requests.get(GOOGLE_DISCOVERY_URL).json()
@@ -67,17 +67,21 @@ def initWebServer(app, authClient):
         endpointList = []
         for endpoint in endpoints:
             # don't include these values in the response
-            endpointList.append(
-                remove_keys_from_dict(endpoint, ["serverAddress", "port"])
-            )
+            if endpoint["isEnabled"]:
+                endpointList.append(
+                    remove_keys_from_dict(endpoint, ["serverAddress", "port"])
+                )
         return Response(json.dumps(endpointList), content_type="application/json")
 
     for endpoint in loadEndpoints(True):
-        eventStreamRouteHandler(
-            app,
-            endpoint,
-            "api/"
-        )
+        if endpoint["isEnabled"]:
+            eventStreamRouteHandler(
+                app,
+                endpoint,
+                "api/"
+            )
+        else:
+            print(f'Endpoint is DISABLED: {endpoint["urlSuffix"]} / {endpoint["label"]}')
 
     @app.route("/login")
     def login():
@@ -150,7 +154,7 @@ def initWebServer(app, authClient):
 if __name__ == "__main__":
     settings = loadWebSettings(True)
     app = Flask(__name__)
-    app.secret_key = APP_SECRET_KEY
+    app.secret_key = GOOGLE_APP_SECRET_KEY
     authClient = WebApplicationClient(GOOGLE_CLIENT_ID)
     initWebServer(app, authClient)
 

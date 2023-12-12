@@ -7,9 +7,19 @@ def createChunk(content: str, stop: bool = False):
     )
 
 
-def parseChunkContent(chunk):
+def parseChunkContent(chunk, isOpenAi):
     chunkStr = chunk.decode("utf-8")
-    chunkSplit = chunkStr.split("data:")
+    if isOpenAi:
+        chunkJson = json.loads(chunkStr)
+        response = chunkJson["choices"][0]["message"]["content"]
+        return response
+    if "data:" in chunkStr:
+        chunkSplit = chunkStr.split("data:")
+    elif "error:" in chunkStr:
+        chunkSplit = chunkStr.split("error:")
+    else:
+        print("couldn't split chunk on data: or error:", chunkStr)
+        chunkSplit = [chunkStr]
     chunkContent = ""
     for eventObjectJson in chunkSplit:
         if len(eventObjectJson):
@@ -18,12 +28,20 @@ def parseChunkContent(chunk):
                 eventObjectJsonClean[-2:] == "\\n"
             ):  # remove trailing escaped \n from string eg {"content":"stuff"}\\n\\n
                 eventObjectJsonClean = eventObjectJsonClean[:-2]
-            try:
-                eventObject = json.loads(eventObjectJsonClean)
-                if "content" in eventObject:
+            if eventObjectJsonClean[:-1] == '"':
+                eventObjectJsonClean += "}"
+            
+            if "content" in eventObjectJsonClean:
+                try:
+                    eventObject = json.loads(eventObjectJsonClean)
                     chunkContent += str(eventObject["content"])
-            except json.decoder.JSONDecodeError:
-                print(f"Json decode error parsing chunk: '{chunk}'")
+                except json.decoder.JSONDecodeError:
+                    print("Json decode error with event chunk, not parsing:", eventObjectJsonClean)
+                    chunkContent += eventObjectJsonClean
+            else:
+                print("'content' not found in event chunk:", eventObjectJsonClean)
+                chunkContent += eventObjectJsonClean           
+        
     return chunkContent
 
 
@@ -65,14 +83,17 @@ th = bcolors.OKBLUE
 vs = "│"
 
 
-def printDictAsTable(dict, title="Table output:", headers=["Key", "Value"]):
+def printDictAsTable(dict, title="Table output:", headers=["Key", "Value"], isError=False):
     table = ""
+    borderCol = bc
+    if isError:
+        borderCol = bcolors.FAIL
     maxKeyWidth = max(len(str(key)) for key in dict.keys())
     maxValueWidth = max(len(str(value)) for value in dict.values())
     if maxValueWidth < 8:
         maxValueWidth = 8
     tableHeaders = (
-        bc
+        borderCol
         + vs
         + " "
         + th
@@ -80,13 +101,13 @@ def printDictAsTable(dict, title="Table output:", headers=["Key", "Value"]):
             cell.ljust(maxKeyWidth if cell == headers[0] else maxValueWidth)
             for cell in headers
         )
-        + bc
+        + borderCol
         + vs
         + "\n"
     )
     for key, value in dict.items():
         table += (
-            bc
+            borderCol
             + vs
             + " "
             + tc
@@ -96,7 +117,7 @@ def printDictAsTable(dict, title="Table output:", headers=["Key", "Value"]):
                 .ljust(maxKeyWidth if cell == key else maxValueWidth)
                 for cell in [key, value]
             )
-            + bc
+            + borderCol
             + vs
             + "\n"
         )
@@ -107,14 +128,14 @@ def printDictAsTable(dict, title="Table output:", headers=["Key", "Value"]):
         spacer += " "
         border += "─"
     table = (
-        bc
+        borderCol
         + "┌"
         + border
         + "┐\n"
         + vs
         + tc
         + (" " + title).ljust(tableWidth)
-        + bc
+        + borderCol
         + vs
         + "\n"
         + vs
