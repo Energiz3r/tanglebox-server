@@ -4,6 +4,7 @@ from settings import loadWebSettings
 from utils import createChunk, parseChunkContent, checkApiToken
 from endpoints import loadEndpoints
 import uuid
+import time
 
 import os
 from dotenv import load_dotenv
@@ -11,7 +12,7 @@ load_dotenv()
 
 OPEN_AI_API_KEY = os.getenv('OPEN_AI_API_KEY')
 
-def eventStreamRouteHandler(app, endpoint, urlPrefix):
+def eventStreamRouteHandler(app, endpoint, urlPrefix, queue):
     def eventStreamRoute():
         settings = loadWebSettings()
         if settings["maintenanceMode"]:
@@ -78,7 +79,25 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
         if isOpenAi:
             data["model"] = endpoint["label"]
 
+        if type == "llamacpp":
+            queue_id = uuid.uuid4()
+            queue.add(queue_id)
+
         def generateProxyStreamingResponse():
+
+            if type == "llamacpp":
+                for i in range(300):
+                    if not queue.check_ready(queue_id):
+                        if (i%5 == 0):
+                            print(f"Task for {ip} waiting for slot", i, 'secs elapsed')
+                        time.sleep(1)
+                        if shouldStream:
+                            yield createChunk("waiting in queue")
+                    else:
+                        break
+            
+                print(f"Task for {ip} is starting")
+
             entireResponse = ""
             try:
                 if isOpenAi:
@@ -86,7 +105,7 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
                 else:
                     headers = {}
                 req = requests.post(serverAddress, json=data, stream=True, headers=headers, timeout=500)
-                for chunk in req.iter_content(chunk_size=1024):
+                for chunk in req.iter_content(chunk_size=1024 * 1024):
                     if shouldStream:
                         shutdown_callback = request.environ.get(
                             "werkzeug.server.shutdown"
@@ -97,10 +116,14 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix):
                     if chunk:
                         entireResponse += parseChunkContent(chunk, isOpenAi)
                         yield chunk
-            except request.exceptions.RequestException as e:
+            except Exception as e: # request.exceptions.RequestException as e:
                 app.logger.error("Error reading from {0}: {1}".format(serverAddress, e))
-                yield str(e)
-            print(f"({endpoint['urlSuffix']}) To ({ip}):", entireResponse)
+                yield createChunk(str(e))
+            finally:
+                if type == "llamacpp":
+                    queue.complete(queue_id)
+                    print(f"Task for {ip} finished!")
+                print(f"({endpoint['urlSuffix']}) To ({ip}):", entireResponse)
 
         if shouldStream:
             return Response(

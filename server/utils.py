@@ -21,6 +21,7 @@ def parseChunkContent(chunk, isOpenAi):
         print("couldn't split chunk on data: or error:", chunkStr)
         chunkSplit = [chunkStr]
     chunkContent = ""
+    wasInvalidChunk = False
     for eventObjectJson in chunkSplit:
         if len(eventObjectJson):
             eventObjectJsonClean = eventObjectJson.strip()
@@ -36,12 +37,16 @@ def parseChunkContent(chunk, isOpenAi):
                     eventObject = json.loads(eventObjectJsonClean)
                     chunkContent += str(eventObject["content"])
                 except json.decoder.JSONDecodeError:
+                    wasInvalidChunk = True
                     print("Json decode error with event chunk, not parsing:", eventObjectJsonClean)
                     chunkContent += eventObjectJsonClean
             else:
+                wasInvalidChunk = True
                 print("'content' not found in event chunk:", eventObjectJsonClean)
                 chunkContent += eventObjectJsonClean           
         
+    if not isOpenAi and wasInvalidChunk:
+        return createChunk(chunkContent)
     return chunkContent
 
 

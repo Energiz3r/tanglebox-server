@@ -11,6 +11,7 @@ from flask import (
     redirect,
     request,
 )
+from basicQueue import BasicQueue
 from utils import remove_keys_from_dict
 from oauthlib.oauth2 import WebApplicationClient
 import requests
@@ -28,7 +29,7 @@ def get_google_provider_cfg():
     return requests.get(GOOGLE_DISCOVERY_URL).json()
 
 
-def initWebServer(app, authClient):
+def initWebServer(app, authClient, queue):
     @app.route("/", methods=["GET"])
     def index():
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
@@ -78,7 +79,8 @@ def initWebServer(app, authClient):
             eventStreamRouteHandler(
                 app,
                 endpoint,
-                "api/"
+                "api/",
+                queue
             )
         else:
             print(f'Endpoint is DISABLED: {endpoint["urlSuffix"]} / {endpoint["label"]}')
@@ -154,9 +156,10 @@ def initWebServer(app, authClient):
 if __name__ == "__main__":
     settings = loadWebSettings(True)
     app = Flask(__name__)
+    queue = BasicQueue()
     app.secret_key = GOOGLE_APP_SECRET_KEY
     authClient = WebApplicationClient(GOOGLE_CLIENT_ID)
-    initWebServer(app, authClient)
+    initWebServer(app, authClient, queue)
 
     # hide errors if logging disabled
     if not settings["webDebugOutput"]:
