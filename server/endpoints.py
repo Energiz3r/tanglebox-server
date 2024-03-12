@@ -33,11 +33,8 @@ def loadEndpoints(shouldOutputSettings=False):
             "port",
             "requiresAccessToken",
             "maxTokens",
-            "userRole",
-            "assistantRole",
-            "stopToken",
-            "separator",
             "systemPrompt",
+            "promptType",
             "motd",
             "motdColor",
             "motdHeading",
@@ -59,7 +56,7 @@ def loadEndpoints(shouldOutputSettings=False):
         for endpoint in endpointList:
 
             printDictAsTable(
-                remove_keys_from_dict(endpoint, ["systemPrompt", "motd", "motdColor", "motdHeadingColor", "stopToken", "separator", "maxTokens", "userRole", "assistantRole"]),
+                remove_keys_from_dict(endpoint, ["systemPrompt", "motd", "motdColor", "motdHeadingColor", "maxTokens"]),
                 f"Registered endpoint /'{endpoint['urlSuffix']}'",
                 ["Key", "Value"],
                 not endpoint["isEnabled"]

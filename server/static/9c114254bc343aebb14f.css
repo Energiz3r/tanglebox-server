@@ -2303,6 +2303,7 @@ body[data-color-mode*='light'] {
   color: var(--_65ewei8);
 }
 ._1gqba3f1 {
+  cursor: pointer;
   display: flex;
 }
 ._1gqba3f1:visited {

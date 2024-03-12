@@ -1,9 +1,0 @@
-flask==2.2.3
-flask_sock==0.6.0
-transformers==4.32.1
-sentencepiece==0.1.99
-accelerate==0.20.3
-cryptography==40.0.1
-protobuf==3.20
-Werkzeug==2.2.2
-torch-2.0.1+cu118-cp311-cp311-win_amd64.whl

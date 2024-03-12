@@ -74,7 +74,7 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix, queue):
                 data["prompt"] if not "promptInputOnly" in data else data["promptInputOnly"]
             )
 
-        print(f"({endpoint['urlSuffix']}) From ({ip}):", promptForDisplay)
+        print(f"({endpoint['urlSuffix']}) From ({ip}):", promptForDisplay) 
 
         if isOpenAi:
             data["model"] = endpoint["label"]
