@@ -25,6 +25,7 @@ def loadEndpoints(shouldOutputSettings=False):
             "type",
             "urlSuffix",
             "label",
+            "model",
             "isEnabled",
             "isHidden",
             "deviceName",

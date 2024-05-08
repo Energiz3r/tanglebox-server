@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 OPEN_AI_API_KEY = os.getenv('OPEN_AI_API_KEY')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 def eventStreamRouteHandler(app, endpoint, urlPrefix, queue):
     def eventStreamRoute():
@@ -76,9 +77,6 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix, queue):
 
         print(f"({endpoint['urlSuffix']}) From ({ip}):", promptForDisplay) 
 
-        if isOpenAi:
-            data["model"] = endpoint["label"]
-
         if type == "llamacpp":
             queue_id = uuid.uuid4()
             queue.add(queue_id)
@@ -101,7 +99,10 @@ def eventStreamRouteHandler(app, endpoint, urlPrefix, queue):
             entireResponse = ""
             try:
                 if isOpenAi:
-                    headers = {'Authorization': f'Bearer {OPEN_AI_API_KEY}'}
+                    if "gpt" in endpoint["model"]:
+                        headers = {'Authorization': f'Bearer {OPEN_AI_API_KEY}'}
+                    elif "groq" in endpoint["label"]:
+                        headers = {'Authorization': f'Bearer {GROQ_API_KEY}'}
                 else:
                     headers = {}
                 req = requests.post(serverAddress, json=data, stream=True, headers=headers, timeout=500)

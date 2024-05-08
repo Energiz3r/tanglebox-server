@@ -1,5 +1,5 @@
 import json
-
+import re
 
 def createChunk(content: str, stop: bool = False):
     return bytes(
@@ -10,8 +10,15 @@ def createChunk(content: str, stop: bool = False):
 def parseChunkContent(chunk, isOpenAi):
     chunkStr = chunk.decode("utf-8")
     if isOpenAi:
-        chunkJson = json.loads(chunkStr)
-        response = chunkJson["choices"][0]["message"]["content"]
+        try:
+            chunkJson = json.loads(chunkStr)
+            if "error:" in chunkStr:
+                response = chunkJson["error"]["message"]
+            else:
+                response = chunkJson["choices"][0]["message"]["content"]
+        except Exception as e:
+            print("Error parsing JSON in response", e)
+            return "Error parsing JSON chunk for response"
         return response
     if "data:" in chunkStr:
         chunkSplit = chunkStr.split("data:")
