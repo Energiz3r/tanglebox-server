@@ -1,6 +1,7 @@
 from settings import loadWebSettings
 from endpoints import loadEndpoints
 from eventStreamEndpoint import eventStreamRouteHandler
+from openAiToLlama import openAiToLlama
 import logging
 from flask import (
     Flask,
@@ -10,6 +11,7 @@ from flask import (
     session,
     redirect,
     request,
+    send_from_directory
 )
 from basicQueue import BasicQueue
 from utils import remove_keys_from_dict
@@ -17,6 +19,7 @@ from oauthlib.oauth2 import WebApplicationClient
 import requests
 import json
 import os
+import glob
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -30,6 +33,12 @@ def get_google_provider_cfg():
 
 
 def initWebServer(app, authClient, queue):
+
+    @app.route('/robots.txt')
+    @app.route('/sitemap.xml')
+    def static_from_root():
+        return send_from_directory(app.static_folder, request.path[1:])
+
     @app.route("/", methods=["GET"])
     def index():
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
@@ -84,6 +93,8 @@ def initWebServer(app, authClient, queue):
             )
         else:
             print(f'Endpoint is DISABLED: {endpoint["urlSuffix"]} / {endpoint["label"]}')
+
+    openAiToLlama(app, queue)
 
     @app.route("/login")
     def login():
@@ -169,6 +180,9 @@ if __name__ == "__main__":
         log.disabled = True
 
     if settings["useSsl"]:
-        app.run(host="0.0.0.0", port=settings["port"], ssl_context="adhoc")
+        templates = glob.glob('templates/**/*.html', recursive=True)
+        static_files = glob.glob('./static/*', recursive=True)
+        files_to_watch = templates + static_files
+        app.run(host="0.0.0.0", port=settings["port"], ssl_context="adhoc", debug=True, extra_files=files_to_watch)
     else:
         app.run(host="0.0.0.0", port=settings["port"])

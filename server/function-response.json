@@ -1,0 +1,33 @@
+{
+    "id": "chatcmpl-9TlHLw0OyFYa7D3PRpZLzMCy6rMZv",
+    "object": "chat.completion",
+    "created": 1716880279,
+    "model": "gpt-4-0613",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": null,
+                "tool_calls": [
+                    {
+                        "id": "call_0eAraQvi64UAcWaeMt1N8ZHM",
+                        "type": "function",
+                        "function": {
+                            "name": "Classification",
+                            "arguments": "{\n  \"classification\": \"unrelated\",\n  \"is_blacklisted\": false,\n  \"blacklisted_topic_match\": \"\",\n  \"is_off_topic\": false,\n  \"off_topic_match\": \"\"\n}"
+                        }
+                    }
+                ]
+            },
+            "logprobs": null,
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 388,
+        "completion_tokens": 41,
+        "total_tokens": 429
+    },
+    "system_fingerprint": null
+}

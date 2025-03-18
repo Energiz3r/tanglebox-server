@@ -6,7 +6,6 @@ def createChunk(content: str, stop: bool = False):
         f'data: {{"content":{json.dumps(content)},"stop":"{stop}"}}\n\n', "utf-8"
     )
 
-
 def parseChunkContent(chunk, isOpenAi):
     chunkStr = chunk.decode("utf-8")
     if isOpenAi:

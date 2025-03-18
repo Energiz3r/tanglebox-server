@@ -7,6 +7,9 @@ class BasicQueue:
     def add(self, id):
         self.queue.append(id)
 
+    def getLength(self):
+        return len(self.queue)
+
     def complete(self, id):
         self.queue.remove(id)
 

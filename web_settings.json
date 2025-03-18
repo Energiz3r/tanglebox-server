@@ -1,0 +1,11 @@
+{
+  "defaultMaxTokens": 2060,
+  "defaultTemperature": 0.7,
+  "maintenanceMode": false,
+  "maintenanceModeMessage": "Down for maintenance",
+  "port": 8080,
+  "enableTokenRules": false,
+  "useSsl": true,
+  "webDebugOutput": true,
+  "adminGoogleId": "100242747266113980513"
+}

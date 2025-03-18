@@ -2,6 +2,7 @@ from utils import printDictAsTable, remove_keys_from_dict
 import json
 import os
 
+endpointsLast = []
 
 def loadEndpoints(shouldOutputSettings=False):
     json_filepath = "endpoints.json"

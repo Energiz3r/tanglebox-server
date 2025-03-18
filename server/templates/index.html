@@ -1,57 +1,83 @@
-<!doctype html><html lang="en"><head><script>window.tangleboxConfig = {
-      appName: "tanglebox.ai",
-      endpointUrl: "/available-endpoints",
-      placeholderNew: "Type a message to continue the previous chat",
-      placeholderContinue: "Type a message to start a chat",
-      subtextWaiting: "please wait while the AI replies...",
-      subtextReady: "type your input and press enter to send",
-      placeholderEndpointsEmpty:
-        "There are no AI endpoints configured on the server",
-      placeholderEndpointsError:
-        "There was an error fetching the AI endpoint list from the server",
-      defaultTemperature: 0.5,
-      defaultMaxTokens: 4096,
-      buyMeCoffeeUrl: "https://www.buymeacoffee.com/timtangle",
-      joinDiscordUrl: "https://discord.com/invite/76zAeaP",
-      githubRepoUrl: "https://github.com/Energiz3r/tanglebox-model-runner",
-      copyright: "Tangles 2023",
-      footerLinks: [
-        { text: "tanglebox.ai", url: "https://tanglebox.ai" },
-        { text: "github.com/energiz3r", url: "https://github.com/Energiz3r" },
-        { text: "paypal.me/teastwood", url: "https://www.paypal.me/teastwood" },
-      ],
-      themes: [
-        {
-          name: "vicky65",
-          colors: {
-            userColor: "rgb(0,255,193)",
-            aiColor: "rgb(108,59,255)",
-            systemColor: "rgb(255,183,36)",
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script>
+      window.tangleboxConfig = {
+        appName: "tanglebox.ai",
+        endpointUrl: "/available-endpoints",
+        placeholderNew: "Type a message to continue the previous chat",
+        placeholderContinue: "Type a message to start a chat",
+        subtextWaiting: "please wait while the AI replies...",
+        subtextReady: "type your input and press enter to send",
+        placeholderEndpointsEmpty:
+          "There are no AI endpoints configured on the server",
+        placeholderEndpointsError:
+          "There was an error fetching the AI endpoint lists from the server",
+        defaultTemperature: 0.5,
+        defaultMaxTokens: 4096,
+        buyMeCoffeeUrl: "https://www.buymeacoffee.com/timtangle",
+        joinDiscordUrl: "https://discord.com/invite/76zAeaP",
+        githubRepoUrl: "https://github.com/Energiz3r/tanglebox-model-runner",
+        copyright: "Tangles 2023",
+        footerLinks: [
+          { text: "tanglebox.ai", url: "https://tanglebox.ai" },
+          { text: "github.com/energiz3r", url: "https://github.com/Energiz3r" },
+          {
+            text: "paypal.me/teastwood",
+            url: "https://www.paypal.me/teastwood",
           },
-        },
-        {
-          name: "mixtral",
-          colors: {
-            userColor: "rgb(182,84,17)",
-            aiColor: "rgb(255,208,94)",
-            systemColor: "rgb(103,103,103)",
+        ],
+        themes: [
+          {
+            name: "vicky65",
+            colors: {
+              userColor: "rgb(0,255,193)",
+              aiColor: "rgb(108,59,255)",
+              systemColor: "rgb(255,183,36)",
+            },
           },
-        },
-        {
-          name: "black",
-          colors: {
-            userColor: "rgb(0,0,0)",
-            aiColor: "rgb(0,0,0)",
-            systemColor: "rgb(44,44,44)",
+          {
+            name: "mixtral",
+            colors: {
+              userColor: "rgb(182,84,17)",
+              aiColor: "rgb(255,208,94)",
+              systemColor: "rgb(103,103,103)",
+            },
           },
-        },
-        {
-          name: "white",
-          colors: {
-            userColor: "rgb(255,255,255)",
-            aiColor: "rgb(255,255,255)",
-            systemColor: "rgb(255,243,220)",
+          {
+            name: "black",
+            colors: {
+              userColor: "rgb(0,0,0)",
+              aiColor: "rgb(0,0,0)",
+              systemColor: "rgb(44,44,44)",
+            },
           },
-        },
-      ],
-    };</script><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VickyBot</title><link rel="icon" type="image/x-icon" href="./static/favicon.ico"><script>window.userInfo = '{{ userInfo|safe }}';</script><script defer="defer" src="./static/main.bundle.03c2b2a01e46cdf597c2.js"></script><link href="./static/9c114254bc343aebb14f.css" rel="stylesheet"></head><body><div id="root"></div></body></html>
+          {
+            name: "white",
+            colors: {
+              userColor: "rgb(255,255,255)",
+              aiColor: "rgb(255,255,255)",
+              systemColor: "rgb(255,243,220)",
+            },
+          },
+        ],
+      };
+    </script>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>VickyBot</title>
+    <link rel="icon" type="image/x-icon" href="./static/favicon.ico" />
+    <script>
+      window.userInfo = "{{ userInfo|safe }}";
+    </script>
+    <script
+      defer="defer"
+      src="./static/main.bundle.03c2b2a01e46cdf597c2.js"
+    ></script>
+    <link href="./static/9c114254bc343aebb14f.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
